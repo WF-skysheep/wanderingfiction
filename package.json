@@ -1,16 +1,13 @@
 {
   "name": "ocr-deepseek-translator",
-  "version": "1.0.0",
-  "description": "Upload image -> OCR -> translate with DeepSeek via backend",
-  "main": "server.js",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Cloudflare Pages OCR translator with DeepSeek API",
   "scripts": {
-    "start": "node server.js"
+    "dev": "wrangler pages dev .",
+    "deploy": "wrangler pages deploy ."
   },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "dotenv": "^16.6.1",
-    "express": "^4.21.2"
+  "devDependencies": {
+    "wrangler": "^4.38.0"
   }
 }
