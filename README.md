@@ -75,6 +75,35 @@ npm run deploy
 npm run worker:deploy
 ```
 
+### WF 后端并入现有 Worker（本次）
+
+`/wf/api/*` 已并入 `worker-backend/index.js`，由同一个 Cloudflare Worker 提供服务。
+
+1. 在 Cloudflare 创建 D1（若已创建可跳过）：
+```bash
+npx wrangler d1 create wf-db
+```
+
+2. 把返回的 `database_id` 填入 `wrangler.worker.toml` 的 `[[d1_databases]]`。
+
+3. 执行迁移：
+```bash
+npm run worker:wf:migrate:remote
+```
+
+4. 部署 Worker：
+```bash
+npm run worker:deploy
+```
+
+5. 前端 `wf.html` 默认已指向你的 Worker 域名：
+`https://restless-credit-a6e1.wangderingfiction.workers.dev`
+
+可选：在浏览器控制台覆盖为其他后端域名：
+```js
+localStorage.setItem('WF_API_BASE', 'https://your-worker-domain.workers.dev')
+```
+
 ### WF 后端（Node Server 方式）
 
 部署到你的云服务器：

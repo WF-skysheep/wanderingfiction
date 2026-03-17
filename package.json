@@ -8,6 +8,8 @@
     "deploy": "wrangler pages deploy .",
     "worker:dev": "wrangler dev --config wrangler.worker.toml",
     "worker:deploy": "wrangler deploy --config wrangler.worker.toml",
+    "worker:wf:migrate:remote": "wrangler d1 execute wf-db --config wrangler.worker.toml --remote --file worker-backend/migrations/001_wf.sql",
+    "worker:wf:migrate:local": "wrangler d1 execute wf-db --config wrangler.worker.toml --local --file worker-backend/migrations/001_wf.sql",
     "wf:migrate": "node wf-server/migrate.js",
     "wf:dev": "node wf-server/server.js",
     "wf:test": "node --test wf-server/tests/*.test.js"
