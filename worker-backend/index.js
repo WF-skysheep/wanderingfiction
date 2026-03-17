@@ -162,27 +162,38 @@ async function handleNeteaseRandomSong(env) {
       );
     }
 
-    const selected = list[Math.floor(Math.random() * list.length)];
-    const songId = selected?.id;
-    if (!songId) {
-      return json({ error: "Invalid song item returned by NetEase" }, 502);
-    }
+    const shuffled = [...list].sort(() => Math.random() - 0.5);
+    const csrfToken = extractCsrfToken(cookie);
+    for (const selected of shuffled.slice(0, 8)) {
+      const songId = selected?.id;
+      if (!songId) continue;
 
-    const streamUrl = `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
-    const artists = Array.isArray(selected?.artists)
-      ? selected.artists.map((a) => a?.name).filter(Boolean)
-      : [];
+      const streamUrl = await fetchNeteasePlayableUrl(songId, cookie, csrfToken);
+      if (!streamUrl) continue;
+
+      const artists = Array.isArray(selected?.artists)
+        ? selected.artists.map((a) => a?.name).filter(Boolean)
+        : [];
+
+      return json(
+        {
+          id: songId,
+          name: selected?.name || "未知歌曲",
+          artists,
+          coverUrl: selected?.album?.picUrl || "",
+          reason: selected?.reason || "随机推荐",
+          streamUrl,
+        },
+        200
+      );
+    }
 
     return json(
       {
-        id: songId,
-        name: selected?.name || "未知歌曲",
-        artists,
-        coverUrl: selected?.album?.picUrl || "",
-        reason: selected?.reason || "随机推荐",
-        streamUrl,
+        error: "No playable song found in current recommendations",
+        detail: "网易云推荐歌曲可能受版权/VIP限制，当前批次无可播链接。",
       },
-      200
+      502
     );
   } catch (error) {
     return json(
@@ -190,6 +201,31 @@ async function handleNeteaseRandomSong(env) {
       500
     );
   }
+}
+
+async function fetchNeteasePlayableUrl(songId, cookie, csrfToken) {
+  const endpoint = `https://music.163.com/api/song/enhance/player/url/v1?csrf_token=${encodeURIComponent(csrfToken)}`;
+  const body = new URLSearchParams({
+    ids: JSON.stringify([songId]),
+    level: "standard",
+    encodeType: "mp3",
+  }).toString();
+
+  const upstream = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      ...neteaseHeaders(cookie),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  const data = await parseJsonSafe(await upstream.text());
+  const url = data?.data?.[0]?.url;
+  if (typeof url === "string" && url.startsWith("http")) {
+    return url;
+  }
+  return "";
 }
 
 function parseTranslationPayload(content) {
@@ -264,6 +300,11 @@ function parseJsonSafe(raw) {
   } catch {
     return null;
   }
+}
+
+function extractCsrfToken(cookie) {
+  const match = cookie.match(/(?:^|;\\s*)__csrf=([^;]+)/);
+  return match ? match[1] : "";
 }
 
 function normalizeModel(input) {
