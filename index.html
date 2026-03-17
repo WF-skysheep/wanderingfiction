@@ -150,7 +150,7 @@
 <body>
   <main class="container">
     <h1>图片文字识别 + DeepSeek 翻译</h1>
-    <p>前端只负责 OCR；翻译由后端调用 DeepSeek API，避免在浏览器暴露密钥。</p>
+    <p>前端只负责 OCR；翻译由独立 Cloudflare Worker 后端调用 DeepSeek API，避免在浏览器暴露密钥。</p>
 
     <div class="grid">
       <div class="field">
@@ -202,6 +202,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script>
+    const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
     const imageInput = document.getElementById("imageInput");
     const runBtn = document.getElementById("runBtn");
     const copyBtn = document.getElementById("copyBtn");
@@ -240,7 +241,7 @@
     }
 
     async function translateViaBackend(sourceText, targetLanguage, model) {
-      const response = await fetch("/api/translate", {
+      const response = await fetch(`${WORKER_BASE_URL}/api/translate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sourceText, targetLanguage, model })

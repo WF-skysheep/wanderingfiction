@@ -1,0 +1,4 @@
+name = "restless-credit-a6e1"
+main = "worker-backend/index.js"
+compatibility_date = "2025-11-01"
+workers_dev = true

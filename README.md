@@ -1,51 +1,60 @@
-# OCR + DeepSeek 翻译网页（Cloudflare Pages）
+# OCR + DeepSeek 翻译网页（Pages + 独立 Worker）
 
 这个项目支持：
 - 上传图片并使用 Tesseract.js 做 OCR（前端）
-- 通过 Cloudflare Pages Functions 调用 DeepSeek API 进行翻译
+- 前端请求独立 Worker 后端翻译：`https://restless-credit-a6e1.wangderingfiction.workers.dev/api/translate`
 
 ## 目录结构
 
-- `index.html`：前端页面
-- `functions/api/translate.js`：Cloudflare Functions 后端接口
-- `wrangler.toml`：Cloudflare 本地开发配置
+- `index.html`：前端页面（已固定请求你的 Worker 域名）
+- `worker-backend/index.js`：Worker 后端逻辑
+- `wrangler.worker.toml`：Worker 部署配置（名称 `restless-credit-a6e1`）
+- `wrangler.toml`：Pages 本地调试配置
 
-## Cloudflare 部署（连接 GitHub）
+## 你现在的部署方式
 
-1. Cloudflare Dashboard -> Pages -> `Create a project`，选择你的 GitHub 仓库。
-2. 构建设置：
-   - Framework preset: `None`
-   - Build command: 留空
-   - Build output directory: `.`
-3. 在该 Pages 项目中设置环境变量：
-   - `DEEPSEEK_API_KEY` = 你的 DeepSeek Key
-4. 触发部署后访问站点，即可使用 `/api/translate`（由 Functions 提供）。
+1. GitHub 仓库 -> Cloudflare Pages（部署前端静态网页）
+2. 独立 Worker -> 作为后端 API（`/api/translate`）
 
-## 本地调试（可选）
+## Worker 配置 DeepSeek 密钥
 
-1. 安装依赖
+在项目根目录执行：
+
+```bash
+npx wrangler secret put DEEPSEEK_API_KEY --config wrangler.worker.toml
+```
+
+然后输入你的 DeepSeek API Key。
+
+## 常用命令
 
 ```bash
 npm install
+npm run worker:deploy
+npm run deploy
 ```
 
-2. 配置本地密钥
+## 本地调试（可选）
+
+1. 创建本地变量文件：
 
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
-编辑 `.dev.vars`，填入 `DEEPSEEK_API_KEY`。
-
-3. 本地启动
+2. 写入：
 
 ```bash
-npm run dev
+DEEPSEEK_API_KEY=你的key
 ```
 
-默认访问本地地址（wrangler 输出的 URL）。
+3. 本地运行 Worker：
+
+```bash
+npm run worker:dev
+```
 
 ## 注意
 
 - 不要把 `.dev.vars` 提交到仓库。
-- 前端不再存储 API Key，密钥仅在 Cloudflare Functions 环境变量中使用。
+- API Key 只应放在 Worker Secret，不要放前端。

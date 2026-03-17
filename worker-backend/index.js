@@ -1,6 +1,26 @@
-export async function onRequestPost(context) {
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
+
+    if (request.method === "GET" && url.pathname === "/health") {
+      return json({ ok: true, service: "deepseek-worker-backend" }, 200);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/translate") {
+      return handleTranslate(request, env);
+    }
+
+    return json({ error: "Not Found" }, 404);
+  }
+};
+
+async function handleTranslate(request, env) {
   try {
-    const body = await context.request.json().catch(() => null);
+    const body = await request.json().catch(() => null);
     const sourceText = body?.sourceText;
     const targetLanguage = body?.targetLanguage;
     const model = typeof body?.model === "string" && body.model.trim() ? body.model.trim() : "deepseek-chat";
@@ -12,9 +32,8 @@ export async function onRequestPost(context) {
       return json({ error: "targetLanguage is required" }, 400);
     }
 
-    const apiKey = context.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      return json({ error: "Missing DEEPSEEK_API_KEY in Cloudflare environment variables" }, 500);
+    if (!env.DEEPSEEK_API_KEY) {
+      return json({ error: "Missing DEEPSEEK_API_KEY in Worker secrets" }, 500);
     }
 
     const systemPrompt = [
@@ -31,7 +50,7 @@ export async function onRequestPost(context) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "Authorization": `Bearer ${env.DEEPSEEK_API_KEY}`
       },
       body: JSON.stringify({
         model,
@@ -55,7 +74,7 @@ export async function onRequestPost(context) {
       return json({ error: "No translated text returned by DeepSeek" }, 502);
     }
 
-    return json({ translatedText: translated, model });
+    return json({ translatedText: translated, model }, 200);
   } catch (error) {
     return json(
       { error: "Internal server error", detail: error && error.message ? error.message : String(error) },
@@ -64,23 +83,20 @@ export async function onRequestPost(context) {
   }
 }
 
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    }
-  });
-}
-
-function json(payload, status = 200) {
+function json(payload, status) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": "*"
+      ...corsHeaders()
     }
   });
+}
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
 }
