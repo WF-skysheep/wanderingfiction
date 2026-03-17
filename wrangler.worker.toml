@@ -11,4 +11,4 @@ WF_CORS_ORIGIN = "*"
 [[d1_databases]]
 binding = "WF_DB"
 database_name = "wf-db"
-database_id = "78883e03-f362-4f3d-a154-4352054c8cc0"
+database_id = "eb786ab3-a052-42eb-9c27-743e81c9282f"
