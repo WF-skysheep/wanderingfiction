@@ -307,11 +307,11 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const API_CANDIDATES = [
+    const API_CANDIDATES = Array.from(new Set([
       window.WF_API_BASE || '',
-      window.location.origin,
+      window.localStorage.getItem('WF_API_BASE') || '',
       'https://restless-credit-a6e1.wangderingfiction.workers.dev'
-    ].filter(Boolean).map((x) => x.replace(/\/$/, ''));
+    ].filter(Boolean).map((x) => x.replace(/\/$/, ''))));
 
     let state = {
       user: null,
@@ -320,6 +320,7 @@
       adminProjects: [],
       canCloseMessageModal: false,
       selectedTargetUserId: null,
+      activeApiBase: API_CANDIDATES[0] || '',
     };
 
     const el = (id) => document.getElementById(id);
@@ -350,6 +351,7 @@
             lastError = new Error(msg);
             continue;
           }
+          state.activeApiBase = base;
           return data;
         } catch (e) {
           lastError = e;
@@ -517,7 +519,8 @@
 
         const exportBtn = card.querySelector('.js-export');
         if (exportBtn) exportBtn.onclick = () => {
-          window.open((API_CANDIDATES[0] || window.location.origin) + '/wf/api/projects/' + pid + '/export.txt', '_blank');
+          const base = state.activeApiBase || API_CANDIDATES[0] || 'https://restless-credit-a6e1.wangderingfiction.workers.dev';
+          window.open(base + '/wf/api/projects/' + pid + '/export.txt', '_blank');
         };
 
         card.querySelectorAll('.js-del-line').forEach((btn) => {
