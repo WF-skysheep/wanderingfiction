@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>源--WF（流浪小说）</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --card: #fffcf7;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5ddd2;
+      --brand: #7c2d12;
+      --brand-2: #9a3412;
+      --danger: #b91c1c;
+      --ok: #166534;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 12% 10%, #fff6ea 0%, #f2eadf 45%, #ebdfd0 100%);
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .wrap { max-width: 1240px; margin: 0 auto; }
+    .hero {
+      background: rgba(255, 251, 245, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 22px rgba(99, 79, 56, 0.12);
+      margin-bottom: 12px;
+    }
+    .hero-top {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .title { margin: 0; font-size: 24px; letter-spacing: 1px; }
+    .desc { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    button, .btn {
+      border: 1px solid transparent;
+      border-radius: 9px;
+      padding: 8px 11px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+    }
+    button:hover, .btn:hover { background: var(--brand-2); }
+    button.ghost { background: #fff; color: var(--ink); border-color: var(--line); }
+    button.danger { background: var(--danger); }
+    button.soft { background: #f3ebe2; color: #5f3419; border-color: #dfcfbb; }
+    button[disabled] { opacity: 0.45; cursor: not-allowed; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #f3ebe2;
+      color: #6b3f22;
+      border: 1px solid #e7d5c1;
+    }
+    .dot {
+      display: none;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #dc2626;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .dot.show { display: inline-block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 980px) {
+      .grid { grid-template-columns: 2fr 1fr; }
+    }
+
+    .card {
+      background: rgba(255, 252, 247, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 16px rgba(99, 79, 56, 0.1);
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #dbcdbb;
+      border-radius: 9px;
+      padding: 8px 9px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fffdf9;
+      color: var(--ink);
+    }
+    textarea { min-height: 86px; resize: vertical; }
+
+    .auth {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 760px) {
+      .auth { grid-template-columns: 1fr 1fr; }
+    }
+
+    .project {
+      border: 1px solid #e1d4c3;
+      border-radius: 11px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fffcf8;
+    }
+    .project:last-child { margin-bottom: 0; }
+    .project-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .project-name { margin: 0; font-size: 17px; }
+    .meta { color: var(--muted); font-size: 12px; }
+
+    .line {
+      border-left: 2px solid #e8d8c4;
+      padding-left: 8px;
+      margin: 7px 0;
+    }
+    .line-head { font-size: 12px; color: #5f4a3a; }
+    .line-content { margin: 4px 0 0; white-space: pre-wrap; }
+
+    .hidden { display: none !important; }
+
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(35, 30, 24, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      width: min(780px, 100%);
+      max-height: 85vh;
+      overflow: auto;
+      background: #fffaf3;
+      border: 1px solid #dbcab3;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .lock-tip {
+      margin: 0 0 8px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ecd2c5;
+      background: #fff1eb;
+      color: #7f1d1d;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .toast {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      max-width: 360px;
+      background: #1f2937;
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 9px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: .2s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1 class="title">源--WF（流浪小说）</h1>
+          <p class="desc">多人接力续写，同一时刻每个项目仅一人持有续写权。</p>
+        </div>
+        <div class="btn-row hidden" id="mainNav">
+          <button class="soft" id="btnProjects">项目大厅</button>
+          <button class="soft" id="btnMessages">消息中心<span class="dot" id="msgDot"></span></button>
+          <button class="soft hidden" id="btnAdmin">管理员台</button>
+          <button class="ghost" id="btnLogout">退出登录</button>
+        </div>
+      </div>
+      <p class="muted" id="whoami">未登录</p>
+    </section>
+
+    <section id="authArea" class="auth">
+      <div class="card">
+        <h2>登录</h2>
+        <div class="row">
+          <input id="loginUser" placeholder="用户名" />
+          <input id="loginPass" type="password" placeholder="密码" />
+          <button id="doLogin">登录</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>注册</h2>
+        <p class="muted">用户名与密码将安全哈希后存储。</p>
+        <div class="row">
+          <input id="regUser" placeholder="用户名（admin 可触发管理员角色）" />
+          <input id="regPass" type="password" placeholder="密码（至少 6 位）" />
+          <button id="doRegister">注册</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="appArea" class="grid hidden">
+      <div class="card" id="projectsPanel">
+        <h2>项目大厅</h2>
+        <div class="card" style="margin-bottom:10px; padding:10px;">
+          <h2 style="font-size:16px; margin-bottom:8px;">新建项目</h2>
+          <div class="row">
+            <input id="newProjectName" placeholder="项目名称" />
+            <select id="openingMode">
+              <option value="ai">AI 随机生成开头</option>
+              <option value="manual">手写开头</option>
+            </select>
+            <textarea id="openingText" placeholder="手写开头（选择 AI 模式可留空）"></textarea>
+            <button id="createProject">创建</button>
+          </div>
+        </div>
+        <div id="projectList"></div>
+      </div>
+
+      <div>
+        <div class="card hidden" id="adminPanel" style="margin-bottom:12px;">
+          <h2>管理员台</h2>
+          <p class="muted">可管理用户、项目、发消息并审计关键操作。</p>
+
+          <div class="card" style="padding:10px; margin-bottom:10px;">
+            <h2 style="font-size:16px; margin-bottom:8px;">发站内消息</h2>
+            <select id="msgTarget"></select>
+            <textarea id="msgContent" placeholder="提醒 / 建议 / 警告"></textarea>
+            <button id="sendMsg">发送消息</button>
+          </div>
+
+          <div class="card" style="padding:10px; margin-bottom:10px;">
+            <h2 style="font-size:16px; margin-bottom:8px;">用户管理</h2>
+            <div id="adminUsers"></div>
+          </div>
+
+          <div class="card" style="padding:10px;">
+            <h2 style="font-size:16px; margin-bottom:8px;">项目管理</h2>
+            <div id="adminProjects"></div>
+          </div>
+        </div>
+
+        <div class="card" id="tipsPanel">
+          <h2>规则摘要</h2>
+          <p class="muted">1) 提交按钮等于“提交续写 + 移交续写权”</p>
+          <p class="muted">2) 输入留空时，仅移交续写权不新增内容</p>
+          <p class="muted">3) 删除规则：普通用户仅可删自己最新一条且未被覆盖</p>
+          <p class="muted">4) 管理员可导出任意项目 TXT</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-mask" id="msgModal">
+    <div class="modal">
+      <h2 style="margin-top:0;">消息中心</h2>
+      <p class="lock-tip">必须先点击“一键已读”，才能关闭消息中心。</p>
+      <div class="row" style="margin-bottom:10px;">
+        <button id="markAllRead">一键已读</button>
+        <button id="closeMsg" class="ghost" disabled>关闭</button>
+      </div>
+      <div id="msgList"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = window.WF_API_BASE || window.localStorage.getItem('WF_API_BASE') || window.location.origin;
+    const API_PREFIX = API_BASE.replace(/\/$/, '') + '/wf/api';
+
+    let state = {
+      user: null,
+      projects: [],
+      users: [],
+      adminProjects: [],
+      canCloseMessageModal: false,
+      selectedTargetUserId: null,
+    };
+
+    const el = (id) => document.getElementById(id);
+    const toast = (text, isErr = false) => {
+      const node = el('toast');
+      node.textContent = text;
+      node.style.background = isErr ? '#7f1d1d' : '#1f2937';
+      node.classList.add('show');
+      setTimeout(() => node.classList.remove('show'), 1800);
+    };
+
+    async function api(path, options = {}) {
+      const resp = await fetch(API_PREFIX + path, {
+        method: options.method || 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+
+      const ct = resp.headers.get('content-type') || '';
+      const data = ct.includes('application/json') ? await resp.json() : await resp.text();
+      if (!resp.ok) {
+        const msg = data && data.error ? data.error : '请求失败';
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    function fmtTime(v) {
+      return String(v || '').replace('T', ' ').slice(0, 19);
+    }
+
+    function authVisible(loggedIn) {
+      el('authArea').classList.toggle('hidden', loggedIn);
+      el('appArea').classList.toggle('hidden', !loggedIn);
+      el('mainNav').classList.toggle('hidden', !loggedIn);
+    }
+
+    async function bootstrap() {
+      try {
+        const me = await api('/auth/me');
+        if (!me.loggedIn) {
+          authVisible(false);
+          el('whoami').textContent = '未登录';
+          return;
+        }
+
+        state.user = me.user;
+        authVisible(true);
+        el('whoami').textContent = '当前用户：' + state.user.username + '（' + state.user.role + '）';
+        el('btnAdmin').classList.toggle('hidden', state.user.role !== 'admin');
+        el('adminPanel').classList.toggle('hidden', state.user.role !== 'admin');
+
+        await refreshProjects();
+        await refreshUnreadDot();
+
+        if (state.user.role === 'admin') {
+          await refreshAdminData();
+        }
+
+        if ((me.unreadCount || 0) > 0) {
+          await openMessageCenter(true);
+        }
+      } catch (err) {
+        authVisible(false);
+        toast(err.message, true);
+      }
+    }
+
+    async function refreshUnreadDot() {
+      if (!state.user) return;
+      const r = await api('/messages/unread-count');
+      el('msgDot').classList.toggle('show', r.unreadCount > 0);
+    }
+
+    async function refreshProjects() {
+      const data = await api('/projects');
+      state.projects = data.projects || [];
+      const list = el('projectList');
+      if (!state.projects.length) {
+        list.innerHTML = '<p class="muted">暂无项目，创建一个开始接力吧。</p>';
+        return;
+      }
+
+      list.innerHTML = state.projects.map(renderProject).join('');
+      bindProjectActions();
+    }
+
+    function renderProject(p) {
+      const isCreator = state.user && p.creatorId === state.user.id;
+      const isAdmin = state.user && state.user.role === 'admin';
+      const holdByMe = state.user && p.currentWriterId === state.user.id;
+      const canClaim = p.status === 'in_progress' && (!p.currentWriterId || holdByMe);
+      const canComplete = p.status === 'in_progress' && (isCreator || isAdmin);
+      const canDeleteProject = isAdmin || isCreator;
+
+      return `
+      <article class="project" data-id="${p.id}">
+        <div class="project-head">
+          <h3 class="project-name">${escapeHtml(p.name)}</h3>
+          <span class="badge">${p.status === 'completed' ? '已完成' : '进行中'}</span>
+        </div>
+        <p class="meta">创建者：${escapeHtml(p.creatorName)} | 创建时间：${fmtTime(p.createdAt)} | 当前续写权：${p.currentWriterName ? escapeHtml(p.currentWriterName) : '无人持有'}</p>
+
+        <div>
+          ${(p.continuations || []).map((line, i, arr) => {
+            const canDeleteLine = isAdmin || (line.authorId === state.user.id && i === arr.length - 1);
+            return `
+              <div class="line">
+                <div class="line-head">${escapeHtml(line.authorName)} · ${fmtTime(line.createdAt)}</div>
+                <p class="line-content">${escapeHtml(line.content)}</p>
+                ${canDeleteLine ? `<button class="ghost js-del-line" data-line-id="${line.id}">删除这条续写</button>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <button class="js-claim" ${canClaim ? '' : 'disabled'}>获取续写权</button>
+          <button class="ghost js-complete" ${canComplete ? '' : 'disabled'}>完成项目</button>
+          <button class="danger js-del-project" ${canDeleteProject ? '' : 'disabled'}>删除项目</button>
+          ${isAdmin ? '<button class="soft js-export">导出 TXT</button>' : ''}
+          ${isAdmin && p.status === 'completed' ? '<button class="soft js-reopen">重新开放</button>' : ''}
+        </div>
+
+        <div style="margin-top:8px;">
+          <textarea class="js-content" placeholder="续写内容（可留空，仅移交续写权）" ${holdByMe && p.status === 'in_progress' ? '' : 'disabled'}></textarea>
+          <button class="js-submit" ${holdByMe && p.status === 'in_progress' ? '' : 'disabled'}>提交续写 + 移交续写权</button>
+        </div>
+      </article>`;
+    }
+
+    function bindProjectActions() {
+      document.querySelectorAll('.project').forEach((card) => {
+        const pid = card.dataset.id;
+
+        const claimBtn = card.querySelector('.js-claim');
+        if (claimBtn) claimBtn.onclick = async () => {
+          try {
+            await api('/projects/' + pid + '/claim', { method: 'POST' });
+            toast('已获取续写权');
+            await refreshProjects();
+          } catch (e) { toast(e.message, true); }
+        };
+
+        const submitBtn = card.querySelector('.js-submit');
+        if (submitBtn) submitBtn.onclick = async () => {
+          try {
+            const content = card.querySelector('.js-content').value;
+            await api('/projects/' + pid + '/continue', { method: 'POST', body: { content } });
+            toast(content.trim() ? '提交成功，续写权已移交' : '已移交续写权');
+            await refreshProjects();
+          } catch (e) { toast(e.message, true); }
+        };
+
+        const completeBtn = card.querySelector('.js-complete');
+        if (completeBtn) completeBtn.onclick = async () => {
+          try {
+            await api('/projects/' + pid + '/complete', { method: 'POST' });
+            toast('项目已完成');
+            await refreshProjects();
+          } catch (e) { toast(e.message, true); }
+        };
+
+        const delBtn = card.querySelector('.js-del-project');
+        if (delBtn) delBtn.onclick = async () => {
+          if (!confirm('确认删除该项目？')) return;
+          try {
+            await api('/projects/' + pid, { method: 'DELETE' });
+            toast('项目已删除');
+            await refreshProjects();
+            if (state.user.role === 'admin') await refreshAdminData();
+          } catch (e) { toast(e.message, true); }
+        };
+
+        const reopenBtn = card.querySelector('.js-reopen');
+        if (reopenBtn) reopenBtn.onclick = async () => {
+          try {
+            await api('/projects/' + pid + '/reopen', { method: 'POST' });
+            toast('项目已重新开放');
+            await refreshProjects();
+            await refreshAdminData();
+          } catch (e) { toast(e.message, true); }
+        };
+
+        const exportBtn = card.querySelector('.js-export');
+        if (exportBtn) exportBtn.onclick = () => {
+          window.open(API_PREFIX + '/projects/' + pid + '/export.txt', '_blank');
+        };
+
+        card.querySelectorAll('.js-del-line').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.dataset.lineId;
+            try {
+              await api('/continuations/' + id, { method: 'DELETE' });
+              toast('续写已删除');
+              await refreshProjects();
+            } catch (e) { toast(e.message, true); }
+          };
+        });
+      });
+    }
+
+    async function openMessageCenter(forceOpen, preserveCloseState = false) {
+      if (!preserveCloseState) {
+        state.canCloseMessageModal = false;
+        el('closeMsg').disabled = true;
+      }
+      if (forceOpen) {
+        el('msgModal').classList.add('show');
+      }
+
+      const data = await api('/messages');
+      const list = el('msgList');
+      if (!data.messages.length) {
+        list.innerHTML = '<p class="muted">暂无消息。</p>';
+      } else {
+        list.innerHTML = data.messages.map((m) => `
+          <div class="project">
+            <p class="meta">来自：${escapeHtml(m.fromAdminName)} · ${fmtTime(m.createdAt)} ${m.isRead ? '（已读）' : '（未读）'}</p>
+            <p class="line-content">${escapeHtml(m.content)}</p>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function refreshAdminData() {
+      const usersResp = await api('/admin/users');
+      const projectsResp = await api('/admin/projects');
+      state.users = usersResp.users || [];
+      state.adminProjects = projectsResp.projects || [];
+
+      const currentSelected = state.selectedTargetUserId;
+      const target = el('msgTarget');
+      target.innerHTML = state.users
+        .filter((u) => u.role !== 'admin')
+        .map((u) => `<option value="${u.id}">${escapeHtml(u.username)}（项目 ${u.project_count}）</option>`)
+        .join('');
+
+      if (currentSelected && state.users.some((u) => u.id === currentSelected && u.role !== 'admin')) {
+        target.value = currentSelected;
+      }
+      state.selectedTargetUserId = target.value || null;
+
+      el('adminUsers').innerHTML = state.users.map((u) => `
+        <div class="project">
+          <p class="line-content"><strong>${escapeHtml(u.username)}</strong> · ${escapeHtml(u.role)} · 项目数：${u.project_count}</p>
+          <p class="meta">创建于 ${fmtTime(u.created_at)}</p>
+          ${u.role === 'admin' ? '' : `<button class="danger js-admin-del-user" data-id="${u.id}">删除账号</button>`}
+        </div>
+      `).join('') || '<p class="muted">暂无用户</p>';
+
+      el('adminProjects').innerHTML = state.adminProjects.map((p) => `
+        <div class="project">
+          <p class="line-content"><strong>${escapeHtml(p.name)}</strong> · ${p.status === 'completed' ? '已完成' : '进行中'}</p>
+          <p class="meta">创建者：${escapeHtml(p.creator_name || '已删除用户')} · ${fmtTime(p.created_at)}</p>
+          <div class="row">
+            <button class="danger js-admin-del-project" data-id="${p.id}">强制删除</button>
+            <button class="soft js-admin-complete" data-id="${p.id}">强制完成</button>
+            <button class="soft js-admin-reopen" data-id="${p.id}">重新开放</button>
+          </div>
+        </div>
+      `).join('') || '<p class="muted">暂无项目</p>';
+
+      document.querySelectorAll('.js-admin-del-user').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('确认删除该账号？')) return;
+          try {
+            await api('/admin/users/' + btn.dataset.id, { method: 'DELETE' });
+            toast('账号已删除');
+            await refreshAdminData();
+          } catch (e) { toast(e.message, true); }
+        };
+      });
+
+      document.querySelectorAll('.js-admin-del-project').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('确认强制删除该项目？')) return;
+          try {
+            await api('/admin/projects/' + btn.dataset.id, { method: 'DELETE' });
+            toast('项目已强制删除');
+            await refreshAdminData();
+            await refreshProjects();
+          } catch (e) { toast(e.message, true); }
+        };
+      });
+
+      document.querySelectorAll('.js-admin-complete').forEach((btn) => {
+        btn.onclick = async () => {
+          try {
+            await api('/admin/projects/' + btn.dataset.id + '/complete', { method: 'POST' });
+            toast('项目已强制完成');
+            await refreshAdminData();
+            await refreshProjects();
+          } catch (e) { toast(e.message, true); }
+        };
+      });
+
+      document.querySelectorAll('.js-admin-reopen').forEach((btn) => {
+        btn.onclick = async () => {
+          try {
+            await api('/admin/projects/' + btn.dataset.id + '/reopen', { method: 'POST' });
+            toast('项目已重新开放');
+            await refreshAdminData();
+            await refreshProjects();
+          } catch (e) { toast(e.message, true); }
+        };
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    el('doRegister').onclick = async () => {
+      const username = el('regUser').value.trim();
+      const password = el('regPass').value;
+      try {
+        await api('/auth/register', { method: 'POST', body: { username, password } });
+        toast('注册成功，请登录');
+        el('regPass').value = '';
+      } catch (e) { toast(e.message, true); }
+    };
+
+    el('doLogin').onclick = async () => {
+      try {
+        await api('/auth/login', {
+          method: 'POST',
+          body: { username: el('loginUser').value.trim(), password: el('loginPass').value },
+        });
+        toast('登录成功');
+        await bootstrap();
+      } catch (e) { toast(e.message, true); }
+    };
+
+    el('btnLogout').onclick = async () => {
+      try {
+        await api('/auth/logout', { method: 'POST' });
+      } catch (_) {}
+      state.user = null;
+      authVisible(false);
+      el('whoami').textContent = '未登录';
+      toast('已退出登录');
+    };
+
+    el('createProject').onclick = async () => {
+      try {
+        await api('/projects', {
+          method: 'POST',
+          body: {
+            name: el('newProjectName').value.trim(),
+            openingMode: el('openingMode').value,
+            openingText: el('openingText').value,
+          },
+        });
+        el('newProjectName').value = '';
+        el('openingText').value = '';
+        toast('项目创建成功');
+        await refreshProjects();
+        if (state.user.role === 'admin') await refreshAdminData();
+      } catch (e) { toast(e.message, true); }
+    };
+
+    el('btnProjects').onclick = () => {
+      document.getElementById('projectsPanel').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    el('btnAdmin').onclick = () => {
+      document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    el('btnMessages').onclick = async () => {
+      try {
+        await openMessageCenter(true);
+      } catch (e) { toast(e.message, true); }
+    };
+
+    el('markAllRead').onclick = async () => {
+      try {
+        await api('/messages/mark-all-read', { method: 'POST' });
+        state.canCloseMessageModal = true;
+        el('closeMsg').disabled = false;
+        await openMessageCenter(false, true);
+        await refreshUnreadDot();
+        toast('已全部标记为已读');
+      } catch (e) { toast(e.message, true); }
+    };
+
+    el('closeMsg').onclick = () => {
+      if (!state.canCloseMessageModal) return;
+      el('msgModal').classList.remove('show');
+    };
+
+    el('sendMsg').onclick = async () => {
+      try {
+        const targetId = el('msgTarget').value;
+        const content = el('msgContent').value.trim();
+        state.selectedTargetUserId = targetId;
+        await api('/admin/messages', { method: 'POST', body: { toUserId: targetId, content } });
+        el('msgContent').value = '';
+        toast('消息已发送（不会覆盖历史消息）');
+        await refreshAdminData();
+      } catch (e) { toast(e.message, true); }
+    };
+
+    el('msgTarget').addEventListener('change', () => {
+      state.selectedTargetUserId = el('msgTarget').value;
+    });
+
+    bootstrap();
+  </script>
+</body>
+</html>

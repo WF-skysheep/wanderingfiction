@@ -1,70 +1,97 @@
-# OCR + DeepSeek 翻译网页（Pages + 独立 Worker）
+# Playground 2
 
-这个项目支持：
-- 上传图片并使用浏览器端 OCR 识别文字（无需部署）
-- 前端再请求独立 Worker 后端翻译：`https://restless-credit-a6e1.wangderingfiction.workers.dev/api/translate`
+当前项目包含三部分：
+1. `index.html`：主页（九宫格、天气地图、BGM）
+2. `tool.html`：OCR 识别/翻译工具
+3. `wf.html` + `wf-server/`：源--WF（流浪小说）模块（本次新增）
 
-## 目录结构
+## 源--WF（流浪小说）模块结构
 
-- `index.html`：前端页面（已固定请求你的 Worker 域名）
-- `worker-backend/index.js`：Worker 后端逻辑
-- `wrangler.worker.toml`：Worker 部署配置（名称 `restless-credit-a6e1`）
-- `wrangler.toml`：Pages 本地调试配置
+- `wf.html`：前端页面（登录、项目、消息中心、管理员台）
+- `wf-server/app.js`：后端 API（auth/projects/continuations/messages/admin）
+- `wf-server/ai-provider.js`：AI Provider 抽象层（mock / DeepSeek / OpenAI 可切换）
+- `wf-server/db.js`：数据库初始化
+- `wf-server/migrations/001_init.sql`：数据库 Schema 与迁移 SQL
+- `wf-server/migrate.js`：迁移脚本
+- `wf-server/server.js`：后端启动入口
+- `wf-server/tests/wf.test.js`：基础测试（鉴权、续写锁、消息多条、删除规则）
+- `.env.wf.example`：WF 环境变量示例
 
-## 你现在的部署方式
+## 本地运行
 
-1. GitHub 仓库 -> Cloudflare Pages（部署前端静态网页）
-2. 独立 Worker -> 作为翻译 API（`/api/translate`）
-
-## Worker 配置 DeepSeek 密钥
-
-在项目根目录执行：
-
-```bash
-npx wrangler secret put DEEPSEEK_API_KEY --config wrangler.worker.toml
-```
-
-然后输入你的 DeepSeek API Key。
-
-## Worker 配置网易云登录态（主页播放器）
-
-主页随机推荐播放器依赖后端网易云登录态，请再配置：
-
-```bash
-npx wrangler secret put NETEASE_COOKIE --config wrangler.worker.toml
-```
-
-把你网易云登录后的完整 Cookie 字符串填进去（仅存储在 Worker Secret，不暴露给前端）。
-
-## 常用命令
+### 1) 安装依赖
 
 ```bash
 npm install
-npm run worker:deploy
+```
+
+### 2) 启动 WF 后端
+
+```bash
+cp .env.wf.example .env
+npm run wf:migrate
+npm run wf:dev
+```
+
+默认后端地址：`http://localhost:8788`
+
+### 3) 启动前端（Pages 本地）
+
+```bash
+npm run dev
+```
+
+然后访问：
+- 主页：`http://localhost:8787/`
+- 流浪小说：`http://localhost:8787/wf.html`
+
+### 4) 运行测试
+
+```bash
+npm run wf:test
+```
+
+## WF 环境变量
+
+- `WF_PORT`：后端端口（默认 `8788`）
+- `WF_DB_PATH`：SQLite 数据库文件路径
+- `WF_CORS_ORIGIN`：允许跨域前端地址（如 `http://localhost:8787`）
+- `WF_ADMIN_USERNAME`：注册时自动赋管理员角色的用户名（默认 `admin`）
+- `WF_AI_PROVIDER`：`mock` / `deepseek` / `openai`
+- `DEEPSEEK_API_KEY`：DeepSeek 密钥（仅后端使用）
+- `OPENAI_API_KEY`：OpenAI 密钥（仅后端使用）
+
+## 部署说明
+
+### 前端（Cloudflare Pages）
+
+```bash
 npm run deploy
 ```
 
-## 本地调试（可选）
-
-1. 创建本地变量文件：
+### OCR/BGM Worker（已有）
 
 ```bash
-cp .dev.vars.example .dev.vars
+npm run worker:deploy
 ```
 
-2. 写入：
+### WF 后端（Node Server 方式）
+
+部署到你的云服务器：
 
 ```bash
-DEEPSEEK_API_KEY=你的key
+npm ci
+npm run wf:migrate
+WF_AI_PROVIDER=deepseek DEEPSEEK_API_KEY=xxx npm run wf:dev
 ```
 
-3. 本地运行 Worker：
+建议用 PM2/systemd 托管，并反向代理到你的域名子路径（如 `/wf/api`）。
+已提供部署示例：
+- `wf-server/deploy/pm2.config.cjs`
+- `wf-server/deploy/nginx.conf.example`
 
-```bash
-npm run worker:dev
-```
+## 备注
 
-## 注意
-
-- 不要把 `.dev.vars` 提交到仓库。
-- API Key 只应放在 Worker Secret，不要放前端。
+- API Key 不会暴露到前端。
+- 消息中心已实现“必须一键已读后才能关闭”。
+- 已读消息会在查询时自动清理（超过 3 天）。
