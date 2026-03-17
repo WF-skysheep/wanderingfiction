@@ -11,6 +11,7 @@
       background: #ffffff;
       font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
       color: #111827;
+      padding-bottom: 92px;
     }
 
     .entry {
@@ -25,46 +26,57 @@
       color: #fff;
       background: #0f766e;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+      z-index: 20;
     }
 
     .entry:hover {
       background: #115e59;
     }
 
-    .player-wrap {
-      width: min(760px, calc(100vw - 32px));
-      margin: 90px auto 0;
+    .bgm-bar {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      z-index: 30;
       border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 14px;
-      background: #f8fafc;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+      border-radius: 12px;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 8px 10px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
     }
 
-    .player-title {
-      margin: 0 0 10px;
-      font-size: 20px;
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .meta {
-      margin: 0 0 10px;
-      color: #6b7280;
-      font-size: 13px;
-      min-height: 18px;
+      flex: 1 1 240px;
+      margin: 0;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.35;
+      min-height: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .actions {
       display: flex;
+      gap: 6px;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 10px;
     }
 
     .btn {
       border: 0;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 13px;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
       font-weight: 700;
       color: #fff;
       background: #0f766e;
@@ -75,28 +87,40 @@
       background: #115e59;
     }
 
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     .status {
-      margin: 8px 0 0;
-      color: #6b7280;
-      font-size: 13px;
-      min-height: 18px;
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: #64748b;
+      min-height: 16px;
+    }
+
+    #player {
+      width: 100%;
+      margin-top: 6px;
+      height: 34px;
     }
   </style>
 </head>
 <body>
   <a class="entry" href="tool.html">进入 OCR 翻译工具</a>
 
-  <main class="player-wrap">
-    <h1 class="player-title">网易云随机推荐播放器</h1>
-    <p id="songMeta" class="meta">等待加载推荐歌曲...</p>
-    <div class="actions">
-      <button id="playRandomBtn" class="btn">播放随机推荐</button>
-      <button id="nextBtn" class="btn">下一首随机</button>
-      <button id="checkLoginBtn" class="btn">检查网易云登录</button>
+  <section class="bgm-bar" aria-label="背景音乐播放器">
+    <div class="row">
+      <p id="songMeta" class="meta">正在初始化随机推荐...</p>
+      <div class="actions">
+        <button id="playRandomBtn" class="btn">播放</button>
+        <button id="nextBtn" class="btn">下一首</button>
+        <button id="checkLoginBtn" class="btn">登录状态</button>
+      </div>
     </div>
-    <audio id="player" controls preload="none" style="width:100%;"></audio>
+    <audio id="player" controls preload="none" controlsList="nodownload noplaybackrate"></audio>
     <p id="status" class="status"></p>
-  </main>
+  </section>
 
   <script>
     const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
@@ -107,13 +131,15 @@
     const nextBtn = document.getElementById("nextBtn");
     const checkLoginBtn = document.getElementById("checkLoginBtn");
 
+    let loadingSong = false;
+
     function setStatus(message) {
-      statusEl.textContent = message;
+      statusEl.textContent = message || "";
     }
 
     function formatSongMeta(song) {
       const artists = Array.isArray(song.artists) && song.artists.length ? song.artists.join(" / ") : "未知歌手";
-      return `正在播放：${song.name} - ${artists}（${song.reason || "随机推荐"}）`;
+      return `${song.name} - ${artists}`;
     }
 
     async function fetchRandomSong() {
@@ -128,19 +154,23 @@
       return data;
     }
 
-    async function playRandomSong() {
+    async function playRandomSong(auto = false) {
+      if (loadingSong) return;
+      loadingSong = true;
       playRandomBtn.disabled = true;
       nextBtn.disabled = true;
+
       try {
-        setStatus("正在获取网易云随机推荐...");
+        setStatus(auto ? "自动加载随机推荐中..." : "正在获取随机推荐...");
         const song = await fetchRandomSong();
         player.src = song.streamUrl;
         songMeta.textContent = formatSongMeta(song);
         await player.play();
-        setStatus("播放中。");
+        setStatus("播放中");
       } catch (error) {
-        setStatus(error.message || "播放失败。");
+        setStatus(error.message || "播放失败");
       } finally {
+        loadingSong = false;
         playRandomBtn.disabled = false;
         nextBtn.disabled = false;
       }
@@ -155,17 +185,25 @@
         if (!resp.ok) {
           throw new Error(data.error || `登录状态检查失败：HTTP ${resp.status}`);
         }
-        setStatus(`已登录：${data.nickname || "未知用户"} (${data.userId || "-"})`);
+        setStatus(`已登录：${data.nickname || "未知用户"}`);
       } catch (error) {
-        setStatus(error.message || "登录状态检查失败。");
+        setStatus(error.message || "登录状态检查失败");
       } finally {
         checkLoginBtn.disabled = false;
       }
     }
 
-    playRandomBtn.addEventListener("click", playRandomSong);
-    nextBtn.addEventListener("click", playRandomSong);
+    playRandomBtn.addEventListener("click", () => playRandomSong(false));
+    nextBtn.addEventListener("click", () => playRandomSong(false));
     checkLoginBtn.addEventListener("click", checkLogin);
+
+    player.addEventListener("ended", () => {
+      playRandomSong(true);
+    });
+
+    window.addEventListener("load", () => {
+      playRandomSong(true);
+    });
   </script>
 </body>
 </html>
