@@ -4,6 +4,7 @@
 1. `index.html`：主页（九宫格、天气地图、BGM）
 2. `tool.html`：OCR 识别/翻译工具
 3. `wf.html` + `wf-server/`：源--WF（流浪小说）模块（本次新增）
+4. `functions/wf/api/[[path]].js`：Pages 同域代理（将 `/wf/api/*` 转发到 Worker）
 
 ## 源--WF（流浪小说）模块结构
 
