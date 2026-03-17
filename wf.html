@@ -312,9 +312,6 @@
       window.location.origin,
       'https://restless-credit-a6e1.wangderingfiction.workers.dev'
     ].filter(Boolean).map((x) => x.replace(/\/$/, ''));
-    if (!window.WF_API_BASE && window.location.hostname.endsWith('wanderingfiction.xyz')) {
-      API_CANDIDATES.splice(1, API_CANDIDATES.length - 1);
-    }
 
     let state = {
       user: null,
