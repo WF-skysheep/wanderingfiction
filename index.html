@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>图片文字识别与AI翻译</title>
+  <title>图片文字识别与翻译（DeepSeek 后端）</title>
   <style>
     :root {
-      --bg: #f7f8fb;
       --card: #ffffff;
       --text: #1f2937;
       --muted: #6b7280;
@@ -72,7 +71,6 @@
     }
 
     input[type="text"],
-    input[type="password"],
     textarea {
       width: 100%;
       border: 1px solid var(--border);
@@ -117,13 +115,8 @@
     button:hover { background: var(--primary-hover); }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    .secondary {
-      background: #475569;
-    }
-
-    .secondary:hover {
-      background: #334155;
-    }
+    .secondary { background: #475569; }
+    .secondary:hover { background: #334155; }
 
     .status {
       margin: 10px 0 0;
@@ -151,37 +144,29 @@
       color: var(--muted);
     }
 
-    .out {
-      margin-top: 12px;
-    }
+    .out { margin-top: 12px; }
   </style>
 </head>
 <body>
   <main class="container">
-    <h1>图片文字识别 + AI 翻译</h1>
-    <p>上传图片后，网页会先进行 OCR 识别（支持多语言），再调用 OpenAI 将内容翻译成你指定的目标语言。</p>
+    <h1>图片文字识别 + DeepSeek 翻译</h1>
+    <p>前端只负责 OCR；翻译由后端调用 DeepSeek API，避免在浏览器暴露密钥。</p>
 
     <div class="grid">
-      <div class="field">
-        <label for="apiKey">OpenAI API Key</label>
-        <input id="apiKey" type="password" placeholder="sk-...">
-        <span class="small">仅用于当前浏览器会话，不会自动上传到你的仓库。</span>
-      </div>
-
       <div class="field">
         <label for="targetLang">目标语言</label>
         <input id="targetLang" type="text" placeholder="例如：简体中文 / English / 日本語" value="简体中文">
       </div>
 
       <div class="field">
-        <label for="ocrLang">OCR 识别语言代码（Tesseract）</label>
-        <input id="ocrLang" type="text" value="eng+chi_sim+jpn+kor+spa+fra+deu+rus+ara">
-        <span class="small">可按需减少语言以加快识别，例如只保留 <code>eng+chi_sim</code>。</span>
+        <label for="model">DeepSeek 模型</label>
+        <input id="model" type="text" value="deepseek-chat">
       </div>
 
       <div class="field">
-        <label for="model">翻译模型</label>
-        <input id="model" type="text" value="gpt-4.1-mini">
+        <label for="ocrLang">OCR 识别语言代码（Tesseract）</label>
+        <input id="ocrLang" type="text" value="eng+chi_sim+jpn+kor+spa+fra+deu+rus+ara">
+        <span class="small">可按需减少语言以加快识别，例如只保留 <code>eng+chi_sim</code>。</span>
       </div>
     </div>
 
@@ -220,7 +205,6 @@
     const imageInput = document.getElementById("imageInput");
     const runBtn = document.getElementById("runBtn");
     const copyBtn = document.getElementById("copyBtn");
-    const apiKeyInput = document.getElementById("apiKey");
     const targetLangInput = document.getElementById("targetLang");
     const ocrLangInput = document.getElementById("ocrLang");
     const modelInput = document.getElementById("model");
@@ -255,70 +239,33 @@
       return data.text.trim();
     }
 
-    async function translateTextWithOpenAI(sourceText, targetLanguage, apiKey, model) {
-      const prompt = [
-        "你是专业翻译助手。",
-        `请将用户提供的文本翻译成：${targetLanguage}。`,
-        "要求：",
-        "1) 保留原意，不要编造。",
-        "2) 保持段落结构。",
-        "3) 如果存在明显乱码，尽量基于上下文修复后翻译。",
-        "4) 只输出翻译结果，不要附加说明。"
-      ].join("\n");
-
-      const response = await fetch("https://api.openai.com/v1/responses", {
+    async function translateViaBackend(sourceText, targetLanguage, model) {
+      const response = await fetch("/api/translate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model,
-          input: [
-            { role: "system", content: prompt },
-            { role: "user", content: sourceText }
-          ],
-          temperature: 0.2
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceText, targetLanguage, model })
       });
 
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(`OpenAI 请求失败：${response.status} ${detail}`);
+        throw new Error(data.error || `后端翻译失败：HTTP ${response.status}`);
       }
 
-      const json = await response.json();
-      if (json.output_text && json.output_text.trim()) {
-        return json.output_text.trim();
+      if (!data.translatedText || typeof data.translatedText !== "string") {
+        throw new Error("后端返回数据异常：缺少 translatedText。");
       }
 
-      const fallback = json.output
-        ?.flatMap(item => item.content || [])
-        ?.filter(c => c.type === "output_text")
-        ?.map(c => c.text)
-        ?.join("\n")
-        ?.trim();
-
-      if (!fallback) {
-        throw new Error("未从 OpenAI 响应中解析到翻译文本。");
-      }
-
-      return fallback;
+      return data.translatedText;
     }
 
     async function run() {
       const file = imageInput.files[0];
-      const apiKey = apiKeyInput.value.trim();
       const targetLanguage = targetLangInput.value.trim();
       const ocrLanguages = ocrLangInput.value.trim() || "eng";
-      const model = modelInput.value.trim() || "gpt-4.1-mini";
+      const model = modelInput.value.trim() || "deepseek-chat";
 
       if (!file) {
         setStatus("请先上传一张图片。", true);
-        return;
-      }
-      if (!apiKey) {
-        setStatus("请先填写 OpenAI API Key。", true);
         return;
       }
       if (!targetLanguage) {
@@ -339,8 +286,8 @@
           throw new Error("OCR 未识别到可用文字，请换更清晰的图片或调整 OCR 语言代码。");
         }
 
-        setStatus("OCR 完成，正在调用 AI 翻译...");
-        const translated = await translateTextWithOpenAI(ocrText, targetLanguage, apiKey, model);
+        setStatus("OCR 完成，正在调用后端翻译...");
+        const translated = await translateViaBackend(ocrText, targetLanguage, model);
         translatedTextArea.value = translated;
 
         copyBtn.disabled = false;
