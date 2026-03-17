@@ -10,6 +10,14 @@ export default {
       return json({ ok: true, service: "deepseek-worker-backend" }, 200);
     }
 
+    if (request.method === "GET" && url.pathname === "/api/netease/random-song") {
+      return handleNeteaseRandomSong(env);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/netease/profile") {
+      return handleNeteaseProfile(env);
+    }
+
     if (request.method === "POST" && url.pathname === "/api/translate") {
       return handleTranslate(request, env);
     }
@@ -92,6 +100,98 @@ async function handleTranslate(request, env) {
   }
 }
 
+async function handleNeteaseProfile(env) {
+  try {
+    const cookie = env.NETEASE_COOKIE;
+    if (!cookie) {
+      return json({ error: "Missing NETEASE_COOKIE in Worker secrets" }, 500);
+    }
+
+    const upstream = await fetch("https://music.163.com/api/nuser/account/get", {
+      method: "GET",
+      headers: neteaseHeaders(cookie),
+    });
+
+    const data = await parseJsonSafe(await upstream.text());
+    if (!upstream.ok || !data || data.code !== 200) {
+      return json(
+        {
+          error: "Failed to verify NetEase login profile",
+          detail: data || { status: upstream.status },
+        },
+        502
+      );
+    }
+
+    return json(
+      {
+        userId: data?.profile?.userId ?? null,
+        nickname: data?.profile?.nickname ?? null,
+      },
+      200
+    );
+  } catch (error) {
+    return json(
+      { error: "NetEase profile request failed", detail: error?.message || String(error) },
+      500
+    );
+  }
+}
+
+async function handleNeteaseRandomSong(env) {
+  try {
+    const cookie = env.NETEASE_COOKIE;
+    if (!cookie) {
+      return json({ error: "Missing NETEASE_COOKIE in Worker secrets" }, 500);
+    }
+
+    const upstream = await fetch("https://music.163.com/api/v1/discovery/recommend/songs", {
+      method: "GET",
+      headers: neteaseHeaders(cookie),
+    });
+
+    const data = await parseJsonSafe(await upstream.text());
+    const list = Array.isArray(data?.recommend) ? data.recommend : [];
+    if (!upstream.ok || data?.code !== 200 || list.length === 0) {
+      return json(
+        {
+          error: "Failed to fetch recommended songs from NetEase",
+          detail: data || { status: upstream.status },
+        },
+        502
+      );
+    }
+
+    const selected = list[Math.floor(Math.random() * list.length)];
+    const songId = selected?.id;
+    if (!songId) {
+      return json({ error: "Invalid song item returned by NetEase" }, 502);
+    }
+
+    const streamUrl = `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
+    const artists = Array.isArray(selected?.artists)
+      ? selected.artists.map((a) => a?.name).filter(Boolean)
+      : [];
+
+    return json(
+      {
+        id: songId,
+        name: selected?.name || "未知歌曲",
+        artists,
+        coverUrl: selected?.album?.picUrl || "",
+        reason: selected?.reason || "随机推荐",
+        streamUrl,
+      },
+      200
+    );
+  } catch (error) {
+    return json(
+      { error: "NetEase random recommendation request failed", detail: error?.message || String(error) },
+      500
+    );
+  }
+}
+
 function parseTranslationPayload(content) {
   const direct = tryParseJson(content);
   if (direct) return normalizeResult(direct, content);
@@ -146,6 +246,24 @@ function corsHeaders() {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type"
   };
+}
+
+function neteaseHeaders(cookie) {
+  return {
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://music.163.com/",
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+    "Cookie": cookie,
+  };
+}
+
+function parseJsonSafe(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 function normalizeModel(input) {

@@ -10,6 +10,7 @@
       min-height: 100vh;
       background: #ffffff;
       font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #111827;
     }
 
     .entry {
@@ -29,9 +30,142 @@
     .entry:hover {
       background: #115e59;
     }
+
+    .player-wrap {
+      width: min(760px, calc(100vw - 32px));
+      margin: 90px auto 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fafc;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+    }
+
+    .player-title {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .meta {
+      margin: 0 0 10px;
+      color: #6b7280;
+      font-size: 13px;
+      min-height: 18px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      background: #0f766e;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #115e59;
+    }
+
+    .status {
+      margin: 8px 0 0;
+      color: #6b7280;
+      font-size: 13px;
+      min-height: 18px;
+    }
   </style>
 </head>
 <body>
   <a class="entry" href="tool.html">进入 OCR 翻译工具</a>
+
+  <main class="player-wrap">
+    <h1 class="player-title">网易云随机推荐播放器</h1>
+    <p id="songMeta" class="meta">等待加载推荐歌曲...</p>
+    <div class="actions">
+      <button id="playRandomBtn" class="btn">播放随机推荐</button>
+      <button id="nextBtn" class="btn">下一首随机</button>
+      <button id="checkLoginBtn" class="btn">检查网易云登录</button>
+    </div>
+    <audio id="player" controls preload="none" style="width:100%;"></audio>
+    <p id="status" class="status"></p>
+  </main>
+
+  <script>
+    const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
+    const player = document.getElementById("player");
+    const songMeta = document.getElementById("songMeta");
+    const statusEl = document.getElementById("status");
+    const playRandomBtn = document.getElementById("playRandomBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const checkLoginBtn = document.getElementById("checkLoginBtn");
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    function formatSongMeta(song) {
+      const artists = Array.isArray(song.artists) && song.artists.length ? song.artists.join(" / ") : "未知歌手";
+      return `正在播放：${song.name} - ${artists}（${song.reason || "随机推荐"}）`;
+    }
+
+    async function fetchRandomSong() {
+      const resp = await fetch(`${WORKER_BASE_URL}/api/netease/random-song`);
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.error || `拉取随机推荐失败：HTTP ${resp.status}`);
+      }
+      if (!data.streamUrl) {
+        throw new Error("后端未返回可播放链接。");
+      }
+      return data;
+    }
+
+    async function playRandomSong() {
+      playRandomBtn.disabled = true;
+      nextBtn.disabled = true;
+      try {
+        setStatus("正在获取网易云随机推荐...");
+        const song = await fetchRandomSong();
+        player.src = song.streamUrl;
+        songMeta.textContent = formatSongMeta(song);
+        await player.play();
+        setStatus("播放中。");
+      } catch (error) {
+        setStatus(error.message || "播放失败。");
+      } finally {
+        playRandomBtn.disabled = false;
+        nextBtn.disabled = false;
+      }
+    }
+
+    async function checkLogin() {
+      checkLoginBtn.disabled = true;
+      try {
+        setStatus("正在检查后端网易云登录状态...");
+        const resp = await fetch(`${WORKER_BASE_URL}/api/netease/profile`);
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          throw new Error(data.error || `登录状态检查失败：HTTP ${resp.status}`);
+        }
+        setStatus(`已登录：${data.nickname || "未知用户"} (${data.userId || "-"})`);
+      } catch (error) {
+        setStatus(error.message || "登录状态检查失败。");
+      } finally {
+        checkLoginBtn.disabled = false;
+      }
+    }
+
+    playRandomBtn.addEventListener("click", playRandomSong);
+    nextBtn.addEventListener("click", playRandomSong);
+    checkLoginBtn.addEventListener("click", checkLogin);
+  </script>
 </body>
 </html>

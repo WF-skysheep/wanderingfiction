@@ -26,6 +26,16 @@ npx wrangler secret put DEEPSEEK_API_KEY --config wrangler.worker.toml
 
 然后输入你的 DeepSeek API Key。
 
+## Worker 配置网易云登录态（主页播放器）
+
+主页随机推荐播放器依赖后端网易云登录态，请再配置：
+
+```bash
+npx wrangler secret put NETEASE_COOKIE --config wrangler.worker.toml
+```
+
+把你网易云登录后的完整 Cookie 字符串填进去（仅存储在 Worker Secret，不暴露给前端）。
+
 ## 常用命令
 
 ```bash
