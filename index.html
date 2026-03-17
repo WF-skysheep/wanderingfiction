@@ -75,6 +75,13 @@
       min-height: 132px;
     }
 
+    .map-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+    }
+
     .strip-title {
       margin: 0 0 8px;
       font-size: 13px;
@@ -96,14 +103,19 @@
       line-height: 1.45;
     }
 
+    .small.tight {
+      margin: 0;
+    }
+
     .map-box {
       width: 100%;
       height: 100%;
-      min-height: 108px;
+      min-height: 172px;
       border: 1px solid var(--border);
       border-radius: 10px;
       overflow: hidden;
       background: #f8fafc;
+      flex: 1;
     }
 
     .map-box iframe {
@@ -254,12 +266,11 @@
         <p id="weatherSub" class="small">等待定位后查询天气</p>
       </article>
 
-      <article class="strip-col">
-        <p class="strip-title">此设备地图位置</p>
+      <article class="strip-col map-col">
+        <p id="locationSub" class="small tight">定位中...（若失败将显示默认位置）</p>
         <div class="map-box">
           <iframe id="mapFrame" title="设备地图位置" loading="lazy"></iframe>
         </div>
-        <p id="locationSub" class="small">正在定位...</p>
       </article>
     </section>
 
@@ -353,11 +364,18 @@
       mapFrameEl.src = src;
     }
 
+    function setDefaultMap() {
+      const lat = 31.2304;
+      const lon = 121.4737;
+      setMapByLatLon(lat, lon);
+    }
+
     async function loadWeatherAndLocation() {
       if (!navigator.geolocation) {
         weatherMainEl.textContent = "无法定位";
         weatherSubEl.textContent = "浏览器不支持定位";
-        locationSubEl.textContent = "未获取到位置";
+        locationSubEl.textContent = "无法定位，已显示默认位置（上海）";
+        setDefaultMap();
         return;
       }
 
@@ -384,7 +402,8 @@
       }, (err) => {
         weatherMainEl.textContent = "定位失败";
         weatherSubEl.textContent = "无法获取天气";
-        locationSubEl.textContent = `定位被拒绝或失败：${err.message}`;
+        locationSubEl.textContent = `定位失败，已显示默认位置（上海）：${err.message}`;
+        setDefaultMap();
       }, {
         enableHighAccuracy: true,
         timeout: 12000,
@@ -461,6 +480,7 @@
     });
 
     window.addEventListener("load", () => {
+      setDefaultMap();
       renderCalendar();
       setInterval(renderCalendar, 1000);
       loadWeatherAndLocation();
