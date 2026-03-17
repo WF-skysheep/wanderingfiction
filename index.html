@@ -299,6 +299,7 @@
     const previewEl = document.getElementById("preview");
     const historyListEl = document.getElementById("historyList");
     const HISTORY_KEY = "ocr_translate_history_v1";
+    const OCR_GOOD_CONFIDENCE = 75;
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -314,16 +315,81 @@
       setStatus("图片已选择，可以开始识别。", false);
     });
 
-    async function recognizeText(file, languages) {
-      const { data } = await Tesseract.recognize(file, languages, {
+    async function recognizeWithTesseract(input, languages, stage) {
+      const { data } = await Tesseract.recognize(input, languages, {
         logger: (m) => {
           if (m.status && typeof m.progress === "number") {
             const percent = Math.round(m.progress * 100);
-            setStatus(`OCR：${m.status} (${percent}%)`);
+            setStatus(`OCR(${stage})：${m.status} (${percent}%)`);
           }
         }
       });
-      return data.text.trim();
+      return {
+        text: (data.text || "").trim(),
+        confidence: Number.isFinite(data.confidence) ? data.confidence : 0,
+      };
+    }
+
+    async function preprocessImageForOCR(file) {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(2.2, Math.max(1.2, 1600 / Math.max(bitmap.width, bitmap.height)));
+      const targetWidth = Math.max(1, Math.round(bitmap.width * scale));
+      const targetHeight = Math.max(1, Math.round(bitmap.height * scale));
+
+      const canvas = document.createElement("canvas");
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) throw new Error("无法创建图像预处理上下文。");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      const pixels = imageData.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const gray = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
+        const contrast = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
+        const normalized = contrast > 185 ? 255 : contrast < 70 ? 0 : contrast;
+        pixels[i] = normalized;
+        pixels[i + 1] = normalized;
+        pixels[i + 2] = normalized;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      return await new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("预处理图像生成失败。"));
+            return;
+          }
+          resolve(blob);
+        }, "image/png");
+      });
+    }
+
+    function pickBetterOCRResult(primary, secondary) {
+      const score = (candidate) => {
+        const textLen = (candidate.text || "").replace(/\s+/g, "").length;
+        return candidate.confidence + Math.min(60, textLen / 2);
+      };
+      return score(secondary) > score(primary) ? secondary : primary;
+    }
+
+    async function recognizeText(file, languages) {
+      const firstPass = await recognizeWithTesseract(file, languages, "原图");
+      const firstLen = firstPass.text.replace(/\s+/g, "").length;
+      if (firstPass.confidence >= OCR_GOOD_CONFIDENCE && firstLen >= 18) {
+        return firstPass.text;
+      }
+
+      setStatus("OCR：原图结果一般，正在进行增强识别...", false);
+      const enhancedImage = await preprocessImageForOCR(file);
+      const secondPass = await recognizeWithTesseract(enhancedImage, languages, "增强图");
+      const best = pickBetterOCRResult(firstPass, secondPass);
+      return best.text;
     }
 
     function loadHistory() {
