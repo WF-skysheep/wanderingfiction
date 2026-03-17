@@ -9,7 +9,17 @@
     "worker:dev": "wrangler dev --config wrangler.worker.toml",
     "worker:deploy": "wrangler deploy --config wrangler.worker.toml",
     "worker:wf:migrate:local": "wrangler d1 execute wf-db --config wrangler.worker.toml --local --file worker-backend/migrations/001_wf.sql",
-    "worker:wf:migrate:remote": "wrangler d1 execute wf-db --config wrangler.worker.toml --remote --file worker-backend/migrations/001_wf.sql"
+    "worker:wf:migrate:remote": "wrangler d1 execute wf-db --config wrangler.worker.toml --remote --file worker-backend/migrations/001_wf.sql",
+    "aliyun:migrate": "node aliyun-backend/migrate.js",
+    "aliyun:dev": "NODE_ENV=development node aliyun-backend/server.js",
+    "aliyun:start": "NODE_ENV=production node aliyun-backend/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^11.10.0",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "wrangler": "^4.38.0"

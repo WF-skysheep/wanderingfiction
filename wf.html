@@ -309,8 +309,11 @@
   <script>
     const API_CANDIDATES = Array.from(new Set([
       window.WF_API_BASE || '',
+      window.API_BASE_URL || '',
       window.localStorage.getItem('WF_API_BASE') || '',
-      'https://restless-credit-a6e1.wangderingfiction.workers.dev'
+      window.localStorage.getItem('API_BASE_URL') || '',
+      'https://api.wanderingfiction.xyz',
+      'http://127.0.0.1:8788'
     ].filter(Boolean).map((x) => x.replace(/\/$/, ''))));
 
     let state = {
@@ -519,7 +522,7 @@
 
         const exportBtn = card.querySelector('.js-export');
         if (exportBtn) exportBtn.onclick = () => {
-          const base = state.activeApiBase || API_CANDIDATES[0] || 'https://restless-credit-a6e1.wangderingfiction.workers.dev';
+          const base = state.activeApiBase || API_CANDIDATES[0] || 'https://api.wanderingfiction.xyz';
           window.open(base + '/wf/api/projects/' + pid + '/export.txt', '_blank');
         };
 
