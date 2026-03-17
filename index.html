@@ -71,6 +71,7 @@
     }
 
     input[type="text"],
+    select,
     textarea {
       width: 100%;
       border: 1px solid var(--border);
@@ -205,7 +206,10 @@
 
       <div class="field">
         <label for="model">DeepSeek 模型</label>
-        <input id="model" type="text" value="deepseek-chat">
+        <select id="model">
+          <option value="deepseek-chat" selected>chat (deepseek-chat)</option>
+          <option value="deepseek-reasoner">reasoner (deepseek-reasoner)</option>
+        </select>
       </div>
 
       <div class="field">

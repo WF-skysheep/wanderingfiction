@@ -23,7 +23,7 @@ async function handleTranslate(request, env) {
     const body = await request.json().catch(() => null);
     const sourceText = body?.sourceText;
     const targetLanguage = body?.targetLanguage;
-    const model = typeof body?.model === "string" && body.model.trim() ? body.model.trim() : "deepseek-chat";
+    const model = normalizeModel(body?.model);
 
     if (!sourceText || typeof sourceText !== "string") {
       return json({ error: "sourceText is required" }, 400);
@@ -146,4 +146,12 @@ function corsHeaders() {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type"
   };
+}
+
+function normalizeModel(input) {
+  const raw = typeof input === "string" ? input.trim().toLowerCase() : "";
+  if (!raw) return "deepseek-chat";
+  if (raw === "chat" || raw === "deepseek-chat") return "deepseek-chat";
+  if (raw === "reasoner" || raw === "resoner" || raw === "deepseek-reasoner") return "deepseek-reasoner";
+  return "deepseek-chat";
 }
