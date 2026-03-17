@@ -96,6 +96,12 @@
       line-height: 1.3;
     }
 
+    .big.place {
+      margin-top: 8px;
+      font-size: 20px;
+      line-height: 1.35;
+    }
+
     .small {
       margin: 6px 0 0;
       font-size: 12px;
@@ -264,6 +270,7 @@
         <p class="strip-title">天气</p>
         <p id="weatherMain" class="big">加载中...</p>
         <p id="weatherSub" class="small">等待定位后查询天气</p>
+        <p id="geoText" class="big place">正在获取你所在的位置...</p>
       </article>
 
       <article class="strip-col map-col">
@@ -312,6 +319,7 @@
     const calendarSubEl = document.getElementById("calendarSub");
     const weatherMainEl = document.getElementById("weatherMain");
     const weatherSubEl = document.getElementById("weatherSub");
+    const geoTextEl = document.getElementById("geoText");
     const mapFrameEl = document.getElementById("mapFrame");
     const locationSubEl = document.getElementById("locationSub");
 
@@ -370,10 +378,23 @@
       setMapByLatLon(lat, lon);
     }
 
+    async function resolveLocationText(lat, lon) {
+      const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      const country = data?.countryName || "未知国家";
+      const province = data?.principalSubdivision || "未知省份";
+      const city = data?.city || data?.locality || "未知城市";
+      const locality = data?.locality || data?.city || "未知区域";
+      return `${country} · ${province} · ${city} · ${locality}`;
+    }
+
     async function loadWeatherAndLocation() {
       if (!navigator.geolocation) {
         weatherMainEl.textContent = "无法定位";
         weatherSubEl.textContent = "浏览器不支持定位";
+        geoTextEl.textContent = "无法识别你所在的国家省市";
         locationSubEl.textContent = "无法定位，已显示默认位置（上海）";
         setDefaultMap();
         return;
@@ -384,6 +405,7 @@
         const lon = Number(pos.coords.longitude.toFixed(5));
         locationSubEl.textContent = `纬度 ${lat}，经度 ${lon}`;
         setMapByLatLon(lat, lon);
+        geoTextEl.textContent = "正在解析你所在的国家省市...";
 
         try {
           const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto`;
@@ -399,9 +421,16 @@
           weatherMainEl.textContent = "天气加载失败";
           weatherSubEl.textContent = "请稍后重试";
         }
+
+        try {
+          geoTextEl.textContent = await resolveLocationText(lat, lon);
+        } catch {
+          geoTextEl.textContent = "位置解析失败（可检查网络后重试）";
+        }
       }, (err) => {
         weatherMainEl.textContent = "定位失败";
         weatherSubEl.textContent = "无法获取天气";
+        geoTextEl.textContent = "无法识别你所在的国家省市";
         locationSubEl.textContent = `定位失败，已显示默认位置（上海）：${err.message}`;
         setDefaultMap();
       }, {
