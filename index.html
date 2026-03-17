@@ -21,15 +21,25 @@
       margin: 0;
       min-height: 100vh;
       background-color: var(--bg);
-      background-image:
-        linear-gradient(rgba(246, 248, 251, 0.68), rgba(246, 248, 251, 0.68)),
-        url("https://upload.wikimedia.org/wikipedia/commons/9/94/School_of_Athens.jpg");
-      background-size: cover;
-      background-position: center center;
-      background-attachment: fixed;
       font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
       color: var(--text);
       padding: 14px 14px 104px;
+      position: relative;
+      z-index: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        linear-gradient(rgba(246, 248, 251, 0.5), rgba(246, 248, 251, 0.5)),
+        url("https://upload.wikimedia.org/wikipedia/commons/9/94/School_of_Athens.jpg");
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      transform: scale(1.02);
     }
 
     .container {
@@ -40,7 +50,7 @@
     }
 
     .top-strip {
-      background: var(--card);
+      background: rgba(255, 255, 255, 0.7);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 12px;
@@ -61,7 +71,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 10px;
-      background: #fcfdff;
+      background: rgba(252, 253, 255, 0.78);
       min-height: 132px;
     }
 
@@ -118,7 +128,7 @@
 
     .tile {
       min-height: 160px;
-      background: var(--card);
+      background: rgba(255, 255, 255, 0.74);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 12px;
