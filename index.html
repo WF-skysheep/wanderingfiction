@@ -252,6 +252,7 @@
     <div class="actions">
       <button id="runBtn">开始识别并翻译</button>
       <button id="copyBtn" class="secondary" disabled>复制翻译结果</button>
+      <button id="exportPdfBtn" class="secondary" disabled>导出 PDF</button>
     </div>
 
     <p id="status" class="status">等待上传图片...</p>
@@ -281,11 +282,13 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script>
     const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
     const imageInput = document.getElementById("imageInput");
     const runBtn = document.getElementById("runBtn");
     const copyBtn = document.getElementById("copyBtn");
+    const exportPdfBtn = document.getElementById("exportPdfBtn");
     const targetLangInput = document.getElementById("targetLang");
     const ocrLangInput = document.getElementById("ocrLang");
     const modelInput = document.getElementById("model");
@@ -364,6 +367,7 @@
           translatedTextArea.value = item.translatedText;
           detectedLangEl.textContent = `检测到语言：${item.sourceLanguage}`;
           copyBtn.disabled = false;
+          exportPdfBtn.disabled = false;
           setStatus("已载入历史记录。", false);
         });
         li.appendChild(btn);
@@ -412,6 +416,7 @@
 
       runBtn.disabled = true;
       copyBtn.disabled = true;
+      exportPdfBtn.disabled = true;
       translatedTextArea.value = "";
       detectedLangEl.textContent = "检测到语言：-";
 
@@ -438,6 +443,7 @@
         });
 
         copyBtn.disabled = false;
+        exportPdfBtn.disabled = false;
         setStatus("完成：已识别并翻译。", false);
       } catch (err) {
         setStatus(err.message || "发生未知错误", true);
@@ -456,6 +462,59 @@
         setStatus("复制失败，请手动复制文本。", true);
       }
     });
+
+    exportPdfBtn.addEventListener("click", async () => {
+      const translated = translatedTextArea.value.trim();
+      if (!translated) {
+        setStatus("暂无可导出的翻译结果。", true);
+        return;
+      }
+
+      const sourceLang = detectedLangEl.textContent.replace("检测到语言：", "").trim() || "未知";
+      const targetLang = targetLangInput.value.trim() || "未指定";
+      const now = new Date();
+      const ts = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}`;
+      const filename = `translation_${ts}.pdf`;
+
+      const container = document.createElement("div");
+      container.style.width = "800px";
+      container.style.padding = "24px";
+      container.style.fontFamily = "\"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif";
+      container.style.background = "#ffffff";
+      container.style.color = "#111827";
+      container.innerHTML = `
+        <h1 style="margin:0 0 12px;font-size:24px;">翻译结果导出</h1>
+        <p style="margin:0 0 6px;font-size:14px;">导出时间：${now.toLocaleString()}</p>
+        <p style="margin:0 0 6px;font-size:14px;">检测语言：${sourceLang}</p>
+        <p style="margin:0 0 16px;font-size:14px;">目标语言：${targetLang}</p>
+        <h2 style="margin:0 0 8px;font-size:18px;">翻译内容</h2>
+        <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;border:1px solid #e5e7eb;border-radius:8px;padding:12px;">${escapeHtml(translated)}</div>
+      `;
+      document.body.appendChild(container);
+
+      try {
+        setStatus("正在生成 PDF...", false);
+        await html2pdf().set({
+          margin: [10, 10, 10, 10],
+          filename,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+        }).from(container).save();
+        setStatus("PDF 导出完成。", false);
+      } catch (err) {
+        setStatus(err.message || "PDF 导出失败。", true);
+      } finally {
+        container.remove();
+      }
+    });
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
 
     renderHistory();
   </script>
