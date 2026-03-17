@@ -813,7 +813,8 @@ async function ensureWfSchema(db) {
     await wfSchemaReady;
     return;
   }
-  wfSchemaReady = db.exec(`
+  wfSchemaReady = (async () => {
+    await db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
@@ -873,8 +874,46 @@ CREATE INDEX IF NOT EXISTS idx_continuations_project_seq ON continuations(projec
 CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_read_gc ON messages(is_read, read_at);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
-  `);
+    `);
+
+    // Backward-compatible schema repair for previously created partial tables.
+    await ensureColumn(db, 'users', 'role', "role TEXT NOT NULL DEFAULT 'user'");
+    await ensureColumn(db, 'users', 'created_at', "created_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+    await ensureColumn(db, 'users', 'deleted_at', 'deleted_at TEXT');
+
+    await ensureColumn(db, 'sessions', 'user_id', 'user_id TEXT');
+    await ensureColumn(db, 'sessions', 'created_at', "created_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+    await ensureColumn(db, 'sessions', 'expires_at', "expires_at TEXT NOT NULL DEFAULT '2999-12-31 23:59:59'");
+
+    await ensureColumn(db, 'projects', 'creator_id', 'creator_id TEXT');
+    await ensureColumn(db, 'projects', 'current_writer_id', 'current_writer_id TEXT');
+    await ensureColumn(db, 'projects', 'lock_version', 'lock_version INTEGER NOT NULL DEFAULT 0');
+    await ensureColumn(db, 'projects', 'created_at', "created_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+    await ensureColumn(db, 'projects', 'updated_at', "updated_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+
+    await ensureColumn(db, 'continuations', 'author_id', 'author_id TEXT');
+    await ensureColumn(db, 'continuations', 'seq', 'seq INTEGER NOT NULL DEFAULT 1');
+    await ensureColumn(db, 'continuations', 'created_at', "created_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+
+    await ensureColumn(db, 'messages', 'from_admin_id', 'from_admin_id TEXT');
+    await ensureColumn(db, 'messages', 'is_read', 'is_read INTEGER NOT NULL DEFAULT 0');
+    await ensureColumn(db, 'messages', 'created_at', "created_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+    await ensureColumn(db, 'messages', 'read_at', 'read_at TEXT');
+
+    await ensureColumn(db, 'audit_logs', 'admin_id', 'admin_id TEXT');
+    await ensureColumn(db, 'audit_logs', 'target_id', 'target_id TEXT');
+    await ensureColumn(db, 'audit_logs', 'details', 'details TEXT');
+    await ensureColumn(db, 'audit_logs', 'created_at', "created_at TEXT NOT NULL DEFAULT '1970-01-01 00:00:00'");
+  })();
   await wfSchemaReady;
+}
+
+async function ensureColumn(db, tableName, columnName, columnDef) {
+  const cols = await db.prepare(`PRAGMA table_info(${tableName})`).all();
+  const list = Array.isArray(cols?.results) ? cols.results : [];
+  const exists = list.some((c) => c.name === columnName);
+  if (exists) return;
+  await db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnDef};`);
 }
 
 async function handleTranslate(request, env) {
