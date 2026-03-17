@@ -307,11 +307,11 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const API_BASE =
-      window.WF_API_BASE ||
-      window.location.origin ||
-      window.location.origin;
-    const API_PREFIX = API_BASE.replace(/\/$/, '') + '/wf/api';
+    const API_CANDIDATES = [
+      window.WF_API_BASE || '',
+      window.location.origin,
+      'https://restless-credit-a6e1.wangderingfiction.workers.dev'
+    ].filter(Boolean).map((x) => x.replace(/\/$/, ''));
 
     let state = {
       user: null,
@@ -332,20 +332,30 @@
     };
 
     async function api(path, options = {}) {
-      const resp = await fetch(API_PREFIX + path, {
-        method: options.method || 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        body: options.body ? JSON.stringify(options.body) : undefined,
-      });
+      let lastError = null;
+      for (const base of API_CANDIDATES) {
+        const endpoint = base + '/wf/api' + path;
+        try {
+          const resp = await fetch(endpoint, {
+            method: options.method || 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+            body: options.body ? JSON.stringify(options.body) : undefined,
+          });
 
-      const ct = resp.headers.get('content-type') || '';
-      const data = ct.includes('application/json') ? await resp.json() : await resp.text();
-      if (!resp.ok) {
-        const msg = data && data.error ? data.error : '请求失败';
-        throw new Error(msg);
+          const ct = resp.headers.get('content-type') || '';
+          const data = ct.includes('application/json') ? await resp.json() : await resp.text();
+          if (!resp.ok) {
+            const msg = data && data.error ? data.error : '请求失败';
+            lastError = new Error(msg);
+            continue;
+          }
+          return data;
+        } catch (e) {
+          lastError = e;
+        }
       }
-      return data;
+      throw lastError || new Error('请求失败');
     }
 
     function fmtTime(v) {
@@ -507,7 +517,7 @@
 
         const exportBtn = card.querySelector('.js-export');
         if (exportBtn) exportBtn.onclick = () => {
-          window.open(API_PREFIX + '/projects/' + pid + '/export.txt', '_blank');
+          window.open((API_CANDIDATES[0] || window.location.origin) + '/wf/api/projects/' + pid + '/export.txt', '_blank');
         };
 
         card.querySelectorAll('.js-del-line').forEach((btn) => {
