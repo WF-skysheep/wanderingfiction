@@ -224,24 +224,23 @@
       </div>
 
       <div class="field">
-        <label for="ocrApiUrl">自建 OCR 服务地址</label>
-        <input id="ocrApiUrl" type="text" value="http://127.0.0.1:8000" placeholder="例如：https://ocr.yourdomain.com">
-        <span class="small">请填写你自建 OCR 服务地址，页面会请求 <code>/ocr</code> 接口。</span>
-      </div>
-
-      <div class="field">
-        <label for="ocrLang">OCR 识别语言（PaddleOCR）</label>
+        <label for="ocrLang">OCR 识别语言（切换）</label>
         <select id="ocrLang">
-          <option value="multi" selected>自动多语言（中英日韩法德）</option>
-          <option value="ch">中文（简体 + 英文）</option>
-          <option value="en">英语</option>
-          <option value="japan">日语</option>
-          <option value="korean">韩语</option>
-          <option value="french">法语</option>
-          <option value="german">德语</option>
-          <option value="chinese_cht">中文（繁体）</option>
+          <option value="eng+chi_sim+jpn+kor+spa+fra+deu+rus+ara" selected>自动多语言（中英日韩西法德俄阿）</option>
+          <option value="chi_sim">中文（简体）</option>
+          <option value="chi_tra">中文（繁体）</option>
+          <option value="eng">英语</option>
+          <option value="jpn">日语</option>
+          <option value="kor">韩语</option>
+          <option value="spa">西班牙语</option>
+          <option value="fra">法语</option>
+          <option value="deu">德语</option>
+          <option value="rus">俄语</option>
+          <option value="ara">阿拉伯语</option>
+          <option value="eng+chi_sim">中英双语</option>
+          <option value="eng+jpn">英日双语</option>
         </select>
-        <span class="small">语言能力取决于你部署的 PaddleOCR 模型与配置。</span>
+        <span class="small">无需部署，直接浏览器识别。可按需切换以提高准确率。</span>
       </div>
     </div>
 
@@ -282,6 +281,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script>
     const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
@@ -290,7 +290,6 @@
     const copyBtn = document.getElementById("copyBtn");
     const exportPdfBtn = document.getElementById("exportPdfBtn");
     const targetLangInput = document.getElementById("targetLang");
-    const ocrApiUrlInput = document.getElementById("ocrApiUrl");
     const ocrLangInput = document.getElementById("ocrLang");
     const modelInput = document.getElementById("model");
     const ocrTextArea = document.getElementById("ocrText");
@@ -300,7 +299,6 @@
     const previewEl = document.getElementById("preview");
     const historyListEl = document.getElementById("historyList");
     const HISTORY_KEY = "ocr_translate_history_v1";
-    const OCR_API_URL_KEY = "ocr_api_url_v1";
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -316,29 +314,15 @@
       setStatus("图片已选择，可以开始识别。", false);
     });
 
-    function normalizeBaseUrl(url) {
-      return url.endsWith("/") ? url.slice(0, -1) : url;
-    }
-
-    async function recognizeTextViaApi(file, langProfile, ocrApiBaseUrl) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("lang_profile", langProfile);
-
-      const response = await fetch(`${normalizeBaseUrl(ocrApiBaseUrl)}/ocr`, {
-        method: "POST",
-        body: formData
+    async function recognizeText(file, languages) {
+      const { data } = await Tesseract.recognize(file, languages, {
+        logger: (m) => {
+          if (m.status && typeof m.progress === "number") {
+            const percent = Math.round(m.progress * 100);
+            setStatus(`OCR：${m.status} (${percent}%)`);
+          }
+        }
       });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || `OCR 服务请求失败：HTTP ${response.status}`);
-      }
-
-      if (!data.text || typeof data.text !== "string") {
-        throw new Error("OCR 服务返回异常：缺少 text。");
-      }
-
       return data.text.trim();
     }
 
@@ -418,8 +402,7 @@
     async function run() {
       const file = imageInput.files[0];
       const targetLanguage = targetLangInput.value.trim();
-      const ocrApiUrl = ocrApiUrlInput.value.trim();
-      const ocrLangProfile = ocrLangInput.value.trim() || "multi";
+      const ocrLanguages = ocrLangInput.value.trim() || "eng";
       const model = modelInput.value.trim() || "deepseek-chat";
 
       if (!file) {
@@ -430,11 +413,6 @@
         setStatus("请填写目标语言。", true);
         return;
       }
-      if (!ocrApiUrl) {
-        setStatus("请填写自建 OCR 服务地址。", true);
-        return;
-      }
-
       runBtn.disabled = true;
       copyBtn.disabled = true;
       exportPdfBtn.disabled = true;
@@ -442,13 +420,12 @@
       detectedLangEl.textContent = "检测到语言：-";
 
       try {
-        localStorage.setItem(OCR_API_URL_KEY, ocrApiUrl);
-        setStatus("正在调用自建 OCR 服务识别...");
-        const ocrText = await recognizeTextViaApi(file, ocrLangProfile, ocrApiUrl);
+        setStatus("开始 OCR 识别...");
+        const ocrText = await recognizeText(file, ocrLanguages);
         ocrTextArea.value = ocrText;
 
         if (!ocrText) {
-          throw new Error("OCR 未识别到可用文字，请换更清晰图片或切换 OCR 语言。");
+          throw new Error("OCR 未识别到可用文字，请换更清晰的图片或调整 OCR 语言代码。");
         }
 
         setStatus("OCR 完成，正在调用后端翻译...");
@@ -536,11 +513,6 @@
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;");
-    }
-
-    const cachedOcrApiUrl = localStorage.getItem(OCR_API_URL_KEY);
-    if (cachedOcrApiUrl) {
-      ocrApiUrlInput.value = cachedOcrApiUrl;
     }
 
     renderHistory();
