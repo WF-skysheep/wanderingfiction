@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>图片文字识别与翻译（DeepSeek 后端）</title>
+  <title>主页</title>
   <style>
     :root {
-      --card: #ffffff;
-      --text: #1f2937;
+      --text: #111827;
       --muted: #6b7280;
+      --border: #e5e7eb;
       --primary: #0f766e;
       --primary-hover: #115e59;
-      --border: #e5e7eb;
+      --bg: #ffffff;
+      --panel: #f8fafc;
       --danger: #b91c1c;
     }
 
@@ -19,124 +20,124 @@
 
     body {
       margin: 0;
-      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: var(--text);
-      background: linear-gradient(140deg, #f1f5f9, #f8fafc 45%, #eef2ff);
       min-height: 100vh;
-      padding: 24px;
-    }
-
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-    }
-
-    h1 {
-      margin-top: 0;
-      margin-bottom: 8px;
-      font-size: 28px;
-    }
-
-    p {
-      margin-top: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin: 16px 0;
-    }
-
-    @media (min-width: 760px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    label {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    input[type="text"],
-    select,
-    textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 14px;
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
       color: var(--text);
-      background: #fff;
     }
 
-    textarea {
-      min-height: 160px;
-      resize: vertical;
-      line-height: 1.45;
-    }
-
-    input[type="file"] {
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      background: #fff;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 8px;
-    }
-
-    button {
+    .tool-entry {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1001;
       border: 0;
       border-radius: 10px;
       padding: 10px 14px;
       font-size: 14px;
       font-weight: 700;
-      cursor: pointer;
       color: #fff;
       background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
     }
 
-    button:hover { background: var(--primary-hover); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .tool-entry:hover { background: var(--primary-hover); }
 
-    .secondary { background: #475569; }
-    .secondary:hover { background: #334155; }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.45);
+      display: none;
+      z-index: 1000;
+    }
 
-    .status {
-      margin: 10px 0 0;
-      font-size: 14px;
+    .modal.open { display: block; }
+
+    .panel {
+      position: absolute;
+      top: 52px;
+      right: 16px;
+      width: min(960px, calc(100vw - 24px));
+      max-height: calc(100vh - 68px);
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.25);
+      padding: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .close-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .desc {
+      margin: 0 0 12px;
       color: var(--muted);
-      min-height: 22px;
+      font-size: 13px;
+      line-height: 1.45;
     }
 
-    .error {
-      color: var(--danger);
-      font-weight: 600;
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
 
-    .preview {
-      max-width: 100%;
-      max-height: 280px;
-      object-fit: contain;
+    @media (min-width: 880px) {
+      .grid.two { grid-template-columns: 1fr 1fr; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input[type="text"], select, textarea {
+      width: 100%;
       border: 1px solid var(--border);
       border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 13px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 140px;
+      line-height: 1.45;
+      resize: vertical;
+    }
+
+    input[type="file"] {
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 8px;
       background: #fff;
     }
 
@@ -145,34 +146,78 @@
       color: var(--muted);
     }
 
-    .out { margin-top: 12px; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
 
-    .detected {
-      margin-top: 6px;
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: #475569;
+    }
+
+    .btn:hover { filter: brightness(0.95); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .status {
+      margin: 8px 0 0;
+      min-height: 20px;
       font-size: 13px;
       color: var(--muted);
     }
 
-    .history {
-      margin-top: 14px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      background: #f8fafc;
+    .error {
+      color: var(--danger);
+      font-weight: 700;
     }
 
-    .history h2 {
+    .detected {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .preview {
+      width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .history {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+    }
+
+    .history h3 {
       margin: 0 0 8px;
-      font-size: 16px;
+      font-size: 14px;
     }
 
     .history-list {
-      display: grid;
-      gap: 8px;
       margin: 0;
       padding: 0;
       list-style: none;
-      max-height: 240px;
+      display: grid;
+      gap: 6px;
+      max-height: 180px;
       overflow: auto;
     }
 
@@ -181,126 +226,134 @@
       text-align: left;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 8px 10px;
-      background: #fff;
-      color: var(--text);
+      padding: 7px 9px;
+      background: #f8fafc;
+      font-size: 12px;
       cursor: pointer;
-      font-weight: 500;
-    }
-
-    .history-item button:hover {
-      background: #f1f5f9;
     }
   </style>
 </head>
 <body>
-  <main class="container">
-    <h1>图片文字识别 + DeepSeek 翻译</h1>
-    <p>前端只负责 OCR；翻译由独立 Cloudflare Worker 后端调用 DeepSeek API，避免在浏览器暴露密钥。</p>
+  <button id="openToolBtn" class="tool-entry">OCR 翻译工具</button>
 
-    <div class="grid">
-      <div class="field">
-        <label for="targetLang">目标语言</label>
-        <select id="targetLang">
-          <option value="简体中文" selected>中文（简体）</option>
-          <option value="繁體中文">中文（繁體）</option>
-          <option value="English">英语</option>
-          <option value="日本語">日语</option>
-          <option value="한국어">韩语</option>
-          <option value="Español">西班牙语</option>
-          <option value="Français">法语</option>
-          <option value="Deutsch">德语</option>
-          <option value="Русский">俄语</option>
-          <option value="العربية">阿拉伯语</option>
-        </select>
+  <div id="toolModal" class="modal" aria-hidden="true">
+    <section class="panel" role="dialog" aria-modal="true" aria-label="OCR 翻译工具">
+      <div class="panel-header">
+        <h1 class="panel-title">OCR 识别与翻译</h1>
+        <button id="closeToolBtn" class="close-btn">关闭</button>
+      </div>
+      <p class="desc">入口集中在主页右上角。支持：仅 OCR、省 tokens、OCR 高精度、翻译、历史记录、导出 PDF。</p>
+
+      <div class="grid two">
+        <div class="field">
+          <label for="targetLang">目标语言</label>
+          <select id="targetLang">
+            <option value="简体中文" selected>中文（简体）</option>
+            <option value="繁體中文">中文（繁體）</option>
+            <option value="English">英语</option>
+            <option value="日本語">日语</option>
+            <option value="한국어">韩语</option>
+            <option value="Español">西班牙语</option>
+            <option value="Français">法语</option>
+            <option value="Deutsch">德语</option>
+            <option value="Русский">俄语</option>
+            <option value="العربية">阿拉伯语</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="model">DeepSeek 模型</label>
+          <select id="model">
+            <option value="deepseek-chat" selected>chat (deepseek-chat)</option>
+            <option value="deepseek-reasoner">reasoner (deepseek-reasoner)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="ocrLang">OCR 识别语言</label>
+          <select id="ocrLang">
+            <option value="eng+chi_sim+jpn+kor+spa+fra+deu+rus+ara" selected>自动多语言（中英日韩西法德俄阿）</option>
+            <option value="chi_sim">中文（简体）</option>
+            <option value="chi_tra">中文（繁体）</option>
+            <option value="eng">英语</option>
+            <option value="jpn">日语</option>
+            <option value="kor">韩语</option>
+            <option value="spa">西班牙语</option>
+            <option value="fra">法语</option>
+            <option value="deu">德语</option>
+            <option value="rus">俄语</option>
+            <option value="ara">阿拉伯语</option>
+            <option value="eng+chi_sim">中英双语</option>
+            <option value="eng+jpn">英日双语</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="ocrMode">OCR 模式</label>
+          <select id="ocrMode">
+            <option value="standard" selected>标准模式（更快）</option>
+            <option value="high">高精度模式（更慢）</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="onlyOcrMode">运行方式</label>
+          <select id="onlyOcrMode">
+            <option value="ocr_translate" selected>识别 + 翻译</option>
+            <option value="ocr_only">仅识别（省 tokens）</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="imageInput">上传图片</label>
+          <input id="imageInput" type="file" accept="image/*">
+          <span class="small">高精度模式会多跑一次增强识别，速度更慢但更稳。</span>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="model">DeepSeek 模型</label>
-        <select id="model">
-          <option value="deepseek-chat" selected>chat (deepseek-chat)</option>
-          <option value="deepseek-reasoner">reasoner (deepseek-reasoner)</option>
-        </select>
+      <div class="actions">
+        <button id="runBtn" class="btn">开始识别并处理</button>
+        <button id="copyBtn" class="btn secondary" disabled>复制翻译结果</button>
+        <button id="exportPdfBtn" class="btn secondary" disabled>导出 PDF</button>
       </div>
 
-      <div class="field">
-        <label for="ocrLang">OCR 识别语言（切换）</label>
-        <select id="ocrLang">
-          <option value="eng+chi_sim+jpn+kor+spa+fra+deu+rus+ara" selected>自动多语言（中英日韩西法德俄阿）</option>
-          <option value="chi_sim">中文（简体）</option>
-          <option value="chi_tra">中文（繁体）</option>
-          <option value="eng">英语</option>
-          <option value="jpn">日语</option>
-          <option value="kor">韩语</option>
-          <option value="spa">西班牙语</option>
-          <option value="fra">法语</option>
-          <option value="deu">德语</option>
-          <option value="rus">俄语</option>
-          <option value="ara">阿拉伯语</option>
-          <option value="eng+chi_sim">中英双语</option>
-          <option value="eng+jpn">英日双语</option>
-        </select>
-        <span class="small">无需部署，直接浏览器识别。可按需切换以提高准确率。</span>
+      <p id="status" class="status">等待上传图片...</p>
+      <p id="detectedLang" class="detected">检测到语言：-</p>
+
+      <div class="grid two">
+        <div class="field">
+          <label for="ocrText">识别出的原文</label>
+          <textarea id="ocrText" placeholder="OCR 结果会显示在这里"></textarea>
+        </div>
+        <div class="field">
+          <label for="translatedText">翻译结果</label>
+          <textarea id="translatedText" placeholder="翻译结果会显示在这里"></textarea>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="ocrMode">OCR 模式</label>
-        <select id="ocrMode">
-          <option value="standard" selected>标准模式（更快）</option>
-          <option value="high">高精度模式（更慢）</option>
-        </select>
+      <div class="grid two">
+        <div class="field">
+          <label>图片预览</label>
+          <img id="preview" class="preview" alt="上传图片预览">
+        </div>
+
+        <section class="history">
+          <h3>最近翻译记录（10条）</h3>
+          <ul id="historyList" class="history-list"></ul>
+        </section>
       </div>
-
-      <div class="field">
-        <label for="onlyOcrMode">运行方式</label>
-        <select id="onlyOcrMode">
-          <option value="ocr_translate" selected>识别 + 翻译</option>
-          <option value="ocr_only">仅识别（省 tokens）</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field">
-      <label for="imageInput">上传图片</label>
-      <input id="imageInput" type="file" accept="image/*">
-    </div>
-
-    <div class="actions">
-      <button id="runBtn">开始识别并翻译</button>
-      <button id="copyBtn" class="secondary" disabled>复制翻译结果</button>
-      <button id="exportPdfBtn" class="secondary" disabled>导出 PDF</button>
-    </div>
-
-    <p id="status" class="status">等待上传图片...</p>
-    <p id="detectedLang" class="detected">检测到语言：-</p>
-
-    <div class="grid out">
-      <div class="field">
-        <label for="ocrText">识别出的原文</label>
-        <textarea id="ocrText" placeholder="OCR 结果会显示在这里"></textarea>
-      </div>
-
-      <div class="field">
-        <label for="translatedText">翻译结果</label>
-        <textarea id="translatedText" placeholder="翻译结果会显示在这里"></textarea>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>图片预览</label>
-      <img id="preview" class="preview" alt="上传图片预览">
-    </div>
-
-    <section class="history">
-      <h2>最近翻译记录（10条）</h2>
-      <ul id="historyList" class="history-list"></ul>
     </section>
-  </main>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script>
     const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
+
+    const openToolBtn = document.getElementById("openToolBtn");
+    const closeToolBtn = document.getElementById("closeToolBtn");
+    const toolModal = document.getElementById("toolModal");
+
     const imageInput = document.getElementById("imageInput");
     const runBtn = document.getElementById("runBtn");
     const copyBtn = document.getElementById("copyBtn");
@@ -310,14 +363,32 @@
     const ocrModeInput = document.getElementById("ocrMode");
     const onlyOcrModeInput = document.getElementById("onlyOcrMode");
     const modelInput = document.getElementById("model");
+
     const ocrTextArea = document.getElementById("ocrText");
     const translatedTextArea = document.getElementById("translatedText");
     const statusEl = document.getElementById("status");
     const detectedLangEl = document.getElementById("detectedLang");
     const previewEl = document.getElementById("preview");
     const historyListEl = document.getElementById("historyList");
+
     const HISTORY_KEY = "ocr_translate_history_v1";
     const OCR_GOOD_CONFIDENCE = 75;
+
+    function openTool() {
+      toolModal.classList.add("open");
+      toolModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeTool() {
+      toolModal.classList.remove("open");
+      toolModal.setAttribute("aria-hidden", "true");
+    }
+
+    openToolBtn.addEventListener("click", openTool);
+    closeToolBtn.addEventListener("click", closeTool);
+    toolModal.addEventListener("click", (event) => {
+      if (event.target === toolModal) closeTool();
+    });
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -464,6 +535,7 @@
           copyBtn.disabled = false;
           exportPdfBtn.disabled = false;
           setStatus("已载入历史记录。", false);
+          openTool();
         });
         li.appendChild(btn);
         historyListEl.appendChild(li);
@@ -510,6 +582,7 @@
         setStatus("请填写目标语言。", true);
         return;
       }
+
       runBtn.disabled = true;
       copyBtn.disabled = true;
       exportPdfBtn.disabled = true;
@@ -522,7 +595,7 @@
         ocrTextArea.value = ocrText;
 
         if (!ocrText) {
-          throw new Error("OCR 未识别到可用文字，请换更清晰的图片或调整 OCR 语言代码。");
+          throw new Error("OCR 未识别到可用文字，请换更清晰的图片或调整 OCR 语言。");
         }
 
         if (runMode === "ocr_only") {
@@ -559,9 +632,14 @@
     runBtn.addEventListener("click", run);
 
     copyBtn.addEventListener("click", async () => {
+      const content = translatedTextArea.value.trim() || ocrTextArea.value.trim();
+      if (!content) {
+        setStatus("暂无可复制内容。", true);
+        return;
+      }
       try {
-        await navigator.clipboard.writeText(translatedTextArea.value);
-        setStatus("翻译结果已复制到剪贴板。", false);
+        await navigator.clipboard.writeText(content);
+        setStatus("内容已复制到剪贴板。", false);
       } catch {
         setStatus("复制失败，请手动复制文本。", true);
       }
@@ -583,7 +661,7 @@
       const container = document.createElement("div");
       container.style.width = "800px";
       container.style.padding = "24px";
-      container.style.fontFamily = "\"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif";
+      container.style.fontFamily = '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif';
       container.style.background = "#ffffff";
       container.style.color = "#111827";
       container.innerHTML = `
