@@ -242,6 +242,14 @@
         </select>
         <span class="small">无需部署，直接浏览器识别。可按需切换以提高准确率。</span>
       </div>
+
+      <div class="field">
+        <label for="ocrMode">OCR 模式</label>
+        <select id="ocrMode">
+          <option value="standard" selected>标准模式（更快）</option>
+          <option value="high">高精度模式（更慢）</option>
+        </select>
+      </div>
     </div>
 
     <div class="field">
@@ -291,6 +299,7 @@
     const exportPdfBtn = document.getElementById("exportPdfBtn");
     const targetLangInput = document.getElementById("targetLang");
     const ocrLangInput = document.getElementById("ocrLang");
+    const ocrModeInput = document.getElementById("ocrMode");
     const modelInput = document.getElementById("model");
     const ocrTextArea = document.getElementById("ocrText");
     const translatedTextArea = document.getElementById("translatedText");
@@ -330,7 +339,7 @@
       };
     }
 
-    async function preprocessImageForOCR(file) {
+    async function preprocessImageForOCR(file, profile = "normal") {
       const bitmap = await createImageBitmap(file);
       const scale = Math.min(2.2, Math.max(1.2, 1600 / Math.max(bitmap.width, bitmap.height)));
       const targetWidth = Math.max(1, Math.round(bitmap.width * scale));
@@ -349,10 +358,13 @@
 
       const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
       const pixels = imageData.data;
+      const highMode = profile === "high";
       for (let i = 0; i < pixels.length; i += 4) {
         const gray = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
-        const contrast = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
-        const normalized = contrast > 185 ? 255 : contrast < 70 ? 0 : contrast;
+        const contrast = Math.max(0, Math.min(255, (gray - 128) * (highMode ? 1.55 : 1.35) + 128));
+        const whiteThreshold = highMode ? 175 : 185;
+        const blackThreshold = highMode ? 78 : 70;
+        const normalized = contrast > whiteThreshold ? 255 : contrast < blackThreshold ? 0 : contrast;
         pixels[i] = normalized;
         pixels[i + 1] = normalized;
         pixels[i + 2] = normalized;
@@ -378,17 +390,25 @@
       return score(secondary) > score(primary) ? secondary : primary;
     }
 
-    async function recognizeText(file, languages) {
+    async function recognizeText(file, languages, mode) {
       const firstPass = await recognizeWithTesseract(file, languages, "原图");
       const firstLen = firstPass.text.replace(/\s+/g, "").length;
-      if (firstPass.confidence >= OCR_GOOD_CONFIDENCE && firstLen >= 18) {
+      if (mode !== "high" && firstPass.confidence >= OCR_GOOD_CONFIDENCE && firstLen >= 18) {
         return firstPass.text;
       }
 
       setStatus("OCR：原图结果一般，正在进行增强识别...", false);
-      const enhancedImage = await preprocessImageForOCR(file);
+      const enhancedImage = await preprocessImageForOCR(file, "normal");
       const secondPass = await recognizeWithTesseract(enhancedImage, languages, "增强图");
-      const best = pickBetterOCRResult(firstPass, secondPass);
+      let best = pickBetterOCRResult(firstPass, secondPass);
+
+      if (mode === "high") {
+        setStatus("OCR：高精度模式，正在进行额外增强识别...", false);
+        const highImage = await preprocessImageForOCR(file, "high");
+        const thirdPass = await recognizeWithTesseract(highImage, languages, "高精度图");
+        best = pickBetterOCRResult(best, thirdPass);
+      }
+
       return best.text;
     }
 
@@ -469,6 +489,7 @@
       const file = imageInput.files[0];
       const targetLanguage = targetLangInput.value.trim();
       const ocrLanguages = ocrLangInput.value.trim() || "eng";
+      const ocrMode = ocrModeInput.value === "high" ? "high" : "standard";
       const model = modelInput.value.trim() || "deepseek-chat";
 
       if (!file) {
@@ -487,7 +508,7 @@
 
       try {
         setStatus("开始 OCR 识别...");
-        const ocrText = await recognizeText(file, ocrLanguages);
+        const ocrText = await recognizeText(file, ocrLanguages, ocrMode);
         ocrTextArea.value = ocrText;
 
         if (!ocrText) {
