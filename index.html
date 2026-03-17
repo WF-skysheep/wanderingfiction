@@ -250,6 +250,14 @@
           <option value="high">高精度模式（更慢）</option>
         </select>
       </div>
+
+      <div class="field">
+        <label for="onlyOcrMode">运行方式</label>
+        <select id="onlyOcrMode">
+          <option value="ocr_translate" selected>识别 + 翻译</option>
+          <option value="ocr_only">仅识别（省 tokens）</option>
+        </select>
+      </div>
     </div>
 
     <div class="field">
@@ -300,6 +308,7 @@
     const targetLangInput = document.getElementById("targetLang");
     const ocrLangInput = document.getElementById("ocrLang");
     const ocrModeInput = document.getElementById("ocrMode");
+    const onlyOcrModeInput = document.getElementById("onlyOcrMode");
     const modelInput = document.getElementById("model");
     const ocrTextArea = document.getElementById("ocrText");
     const translatedTextArea = document.getElementById("translatedText");
@@ -490,6 +499,7 @@
       const targetLanguage = targetLangInput.value.trim();
       const ocrLanguages = ocrLangInput.value.trim() || "eng";
       const ocrMode = ocrModeInput.value === "high" ? "high" : "standard";
+      const runMode = onlyOcrModeInput.value === "ocr_only" ? "ocr_only" : "ocr_translate";
       const model = modelInput.value.trim() || "deepseek-chat";
 
       if (!file) {
@@ -515,22 +525,30 @@
           throw new Error("OCR 未识别到可用文字，请换更清晰的图片或调整 OCR 语言代码。");
         }
 
-        setStatus("OCR 完成，正在调用后端翻译...");
-        const result = await translateViaBackend(ocrText, targetLanguage, model);
-        translatedTextArea.value = result.translatedText;
-        detectedLangEl.textContent = `检测到语言：${result.sourceLanguage}`;
+        if (runMode === "ocr_only") {
+          translatedTextArea.value = "";
+          detectedLangEl.textContent = "检测到语言：仅 OCR 模式未启用语言检测";
+          copyBtn.disabled = false;
+          exportPdfBtn.disabled = true;
+          setStatus("完成：仅识别，未调用翻译接口（已节省 tokens）。", false);
+        } else {
+          setStatus("OCR 完成，正在调用后端翻译...");
+          const result = await translateViaBackend(ocrText, targetLanguage, model);
+          translatedTextArea.value = result.translatedText;
+          detectedLangEl.textContent = `检测到语言：${result.sourceLanguage}`;
 
-        saveHistoryItem({
-          sourceLanguage: result.sourceLanguage,
-          targetLanguage,
-          sourceText: ocrText,
-          translatedText: result.translatedText,
-          createdAt: Date.now()
-        });
+          saveHistoryItem({
+            sourceLanguage: result.sourceLanguage,
+            targetLanguage,
+            sourceText: ocrText,
+            translatedText: result.translatedText,
+            createdAt: Date.now()
+          });
 
-        copyBtn.disabled = false;
-        exportPdfBtn.disabled = false;
-        setStatus("完成：已识别并翻译。", false);
+          copyBtn.disabled = false;
+          exportPdfBtn.disabled = false;
+          setStatus("完成：已识别并翻译。", false);
+        }
       } catch (err) {
         setStatus(err.message || "发生未知错误", true);
       } finally {
