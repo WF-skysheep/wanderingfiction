@@ -75,6 +75,12 @@
       min-height: 132px;
     }
 
+    .calendar-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
     .map-col {
       display: flex;
       flex-direction: column;
@@ -94,6 +100,62 @@
       font-size: 23px;
       font-weight: 800;
       line-height: 1.3;
+    }
+
+    .calendar-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .clock {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #1f2937;
+      line-height: 1;
+    }
+
+    .clock-sub {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .vintage-calendar {
+      width: 132px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .vintage-calendar .head {
+      background: #7c2d12;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 6px;
+      letter-spacing: 0.6px;
+    }
+
+    .vintage-calendar .day {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+      padding-top: 10px;
+      color: #111827;
+    }
+
+    .vintage-calendar .week {
+      font-size: 12px;
+      color: #475569;
+      padding: 6px 4px 10px;
+      font-weight: 700;
     }
 
     .big.place {
@@ -261,10 +323,18 @@
 <body>
   <main class="container">
     <section class="top-strip">
-      <article class="strip-col">
-        <p class="strip-title">今天日历</p>
-        <p id="calendarMain" class="big">--</p>
-        <p id="calendarSub" class="small">--</p>
+      <article class="strip-col calendar-col">
+        <div class="calendar-bottom">
+          <div>
+            <p id="clockText" class="clock">--:--:--</p>
+            <p id="calendarSub" class="clock-sub">--</p>
+          </div>
+          <div class="vintage-calendar">
+            <div id="calendarHead" class="head">----</div>
+            <div id="calendarDay" class="day">--</div>
+            <div id="calendarWeek" class="week">---</div>
+          </div>
+        </div>
       </article>
 
       <article class="strip-col">
@@ -316,8 +386,11 @@
   <script>
     const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
 
-    const calendarMainEl = document.getElementById("calendarMain");
+    const clockTextEl = document.getElementById("clockText");
     const calendarSubEl = document.getElementById("calendarSub");
+    const calendarHeadEl = document.getElementById("calendarHead");
+    const calendarDayEl = document.getElementById("calendarDay");
+    const calendarWeekEl = document.getElementById("calendarWeek");
     const weatherMainEl = document.getElementById("weatherMain");
     const weatherSubEl = document.getElementById("weatherSub");
     const geoTextEl = document.getElementById("geoText");
@@ -335,20 +408,24 @@
 
     function renderCalendar() {
       const now = new Date();
-      const dateText = new Intl.DateTimeFormat("zh-CN", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        weekday: "long",
-      }).format(now);
       const timeText = new Intl.DateTimeFormat("zh-CN", {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
         hour12: false,
       }).format(now);
-      calendarMainEl.textContent = dateText;
-      calendarSubEl.textContent = `当前时间 ${timeText}`;
+      const monthDayText = new Intl.DateTimeFormat("zh-CN", {
+        month: "long",
+        day: "numeric",
+      }).format(now);
+      const weekText = new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(now);
+      const yearText = new Intl.DateTimeFormat("zh-CN", { year: "numeric" }).format(now);
+
+      clockTextEl.textContent = timeText;
+      calendarSubEl.textContent = `${yearText} · ${monthDayText}`;
+      calendarHeadEl.textContent = `${yearText}年`;
+      calendarDayEl.textContent = String(now.getDate()).padStart(2, "0");
+      calendarWeekEl.textContent = weekText;
     }
 
     function weatherCodeToText(code) {
