@@ -145,6 +145,51 @@
     }
 
     .out { margin-top: 12px; }
+
+    .detected {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .history {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .history h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    .history-item button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .history-item button:hover {
+      background: #f1f5f9;
+    }
   </style>
 </head>
 <body>
@@ -181,6 +226,7 @@
     </div>
 
     <p id="status" class="status">等待上传图片...</p>
+    <p id="detectedLang" class="detected">检测到语言：-</p>
 
     <div class="grid out">
       <div class="field">
@@ -198,6 +244,11 @@
       <label>图片预览</label>
       <img id="preview" class="preview" alt="上传图片预览">
     </div>
+
+    <section class="history">
+      <h2>最近翻译记录（10条）</h2>
+      <ul id="historyList" class="history-list"></ul>
+    </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -212,7 +263,10 @@
     const ocrTextArea = document.getElementById("ocrText");
     const translatedTextArea = document.getElementById("translatedText");
     const statusEl = document.getElementById("status");
+    const detectedLangEl = document.getElementById("detectedLang");
     const previewEl = document.getElementById("preview");
+    const historyListEl = document.getElementById("historyList");
+    const HISTORY_KEY = "ocr_translate_history_v1";
 
     function setStatus(message, isError = false) {
       statusEl.textContent = message;
@@ -240,6 +294,54 @@
       return data.text.trim();
     }
 
+    function loadHistory() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+        if (!Array.isArray(parsed)) return [];
+        return parsed;
+      } catch {
+        return [];
+      }
+    }
+
+    function saveHistoryItem(item) {
+      const current = loadHistory();
+      const next = [item, ...current].slice(0, 10);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const items = loadHistory();
+      historyListEl.innerHTML = "";
+
+      if (!items.length) {
+        const li = document.createElement("li");
+        li.textContent = "暂无历史记录";
+        li.className = "small";
+        historyListEl.appendChild(li);
+        return;
+      }
+
+      for (const item of items) {
+        const li = document.createElement("li");
+        li.className = "history-item";
+        const btn = document.createElement("button");
+        const brief = item.sourceText.length > 80 ? `${item.sourceText.slice(0, 80)}...` : item.sourceText;
+        btn.textContent = `[${item.sourceLanguage} -> ${item.targetLanguage}] ${brief}`;
+        btn.addEventListener("click", () => {
+          targetLangInput.value = item.targetLanguage;
+          ocrTextArea.value = item.sourceText;
+          translatedTextArea.value = item.translatedText;
+          detectedLangEl.textContent = `检测到语言：${item.sourceLanguage}`;
+          copyBtn.disabled = false;
+          setStatus("已载入历史记录。", false);
+        });
+        li.appendChild(btn);
+        historyListEl.appendChild(li);
+      }
+    }
+
     async function translateViaBackend(sourceText, targetLanguage, model) {
       const response = await fetch(`${WORKER_BASE_URL}/api/translate`, {
         method: "POST",
@@ -256,7 +358,12 @@
         throw new Error("后端返回数据异常：缺少 translatedText。");
       }
 
-      return data.translatedText;
+      return {
+        translatedText: data.translatedText,
+        sourceLanguage: typeof data.sourceLanguage === "string" && data.sourceLanguage.trim()
+          ? data.sourceLanguage.trim()
+          : "未知"
+      };
     }
 
     async function run() {
@@ -277,6 +384,7 @@
       runBtn.disabled = true;
       copyBtn.disabled = true;
       translatedTextArea.value = "";
+      detectedLangEl.textContent = "检测到语言：-";
 
       try {
         setStatus("开始 OCR 识别...");
@@ -288,8 +396,17 @@
         }
 
         setStatus("OCR 完成，正在调用后端翻译...");
-        const translated = await translateViaBackend(ocrText, targetLanguage, model);
-        translatedTextArea.value = translated;
+        const result = await translateViaBackend(ocrText, targetLanguage, model);
+        translatedTextArea.value = result.translatedText;
+        detectedLangEl.textContent = `检测到语言：${result.sourceLanguage}`;
+
+        saveHistoryItem({
+          sourceLanguage: result.sourceLanguage,
+          targetLanguage,
+          sourceText: ocrText,
+          translatedText: result.translatedText,
+          createdAt: Date.now()
+        });
 
         copyBtn.disabled = false;
         setStatus("完成：已识别并翻译。", false);
@@ -310,6 +427,8 @@
         setStatus("复制失败，请手动复制文本。", true);
       }
     });
+
+    renderHistory();
   </script>
 </body>
 </html>

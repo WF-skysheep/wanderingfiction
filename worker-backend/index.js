@@ -38,12 +38,14 @@ async function handleTranslate(request, env) {
 
     const systemPrompt = [
       "你是专业翻译助手。",
-      `请将用户提供的文本翻译成：${targetLanguage}。`,
+      `请先识别用户文本的原始语言，再翻译为：${targetLanguage}。`,
+      "请严格只输出 JSON，不要输出任何多余文本。",
+      "JSON 格式必须是：",
+      "{\"source_language\":\"<检测到的语言>\",\"translated_text\":\"<翻译结果>\"}",
       "要求：",
       "1) 保留原意，不要编造。",
       "2) 保持段落结构。",
-      "3) 如果存在明显乱码，尽量基于上下文修复后翻译。",
-      "4) 只输出翻译结果，不要附加说明。"
+      "3) 如果存在明显乱码，尽量基于上下文修复后翻译。"
     ].join("\n");
 
     const upstream = await fetch("https://api.deepseek.com/chat/completions", {
@@ -68,19 +70,64 @@ async function handleTranslate(request, env) {
     }
 
     const data = JSON.parse(raw);
-    const translated = data?.choices?.[0]?.message?.content?.trim();
-
-    if (!translated) {
-      return json({ error: "No translated text returned by DeepSeek" }, 502);
+    const content = data?.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      return json({ error: "No translated content returned by DeepSeek" }, 502);
     }
 
-    return json({ translatedText: translated, model }, 200);
+    const parsed = parseTranslationPayload(content);
+    return json(
+      {
+        translatedText: parsed.translatedText,
+        sourceLanguage: parsed.sourceLanguage,
+        model
+      },
+      200
+    );
   } catch (error) {
     return json(
       { error: "Internal server error", detail: error && error.message ? error.message : String(error) },
       500
     );
   }
+}
+
+function parseTranslationPayload(content) {
+  const direct = tryParseJson(content);
+  if (direct) return normalizeResult(direct, content);
+
+  const match = content.match(/\{[\s\S]*\}/);
+  if (match) {
+    const extracted = tryParseJson(match[0]);
+    if (extracted) return normalizeResult(extracted, content);
+  }
+
+  return {
+    sourceLanguage: "未知",
+    translatedText: content
+  };
+}
+
+function tryParseJson(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeResult(parsed, fallbackText) {
+  const sourceLanguage =
+    (typeof parsed.source_language === "string" && parsed.source_language.trim()) ||
+    (typeof parsed.sourceLanguage === "string" && parsed.sourceLanguage.trim()) ||
+    "未知";
+
+  const translatedText =
+    (typeof parsed.translated_text === "string" && parsed.translated_text.trim()) ||
+    (typeof parsed.translatedText === "string" && parsed.translatedText.trim()) ||
+    fallbackText;
+
+  return { sourceLanguage, translatedText };
 }
 
 function json(payload, status) {
