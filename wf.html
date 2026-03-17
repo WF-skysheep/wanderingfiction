@@ -307,9 +307,13 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    const storedApiBase = window.localStorage.getItem('WF_API_BASE') || '';
+    const unsafeMixedContent =
+      window.location.protocol === 'https:' &&
+      /^http:\/\//i.test(storedApiBase);
     const API_BASE =
       window.WF_API_BASE ||
-      window.localStorage.getItem('WF_API_BASE') ||
+      (!unsafeMixedContent ? storedApiBase : '') ||
       'https://restless-credit-a6e1.wangderingfiction.workers.dev' ||
       window.location.origin;
     const API_PREFIX = API_BASE.replace(/\/$/, '') + '/wf/api';
