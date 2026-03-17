@@ -5,32 +5,155 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>主页</title>
   <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
-      background: #ffffff;
+      background: var(--bg);
       font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: #111827;
-      padding-bottom: 92px;
+      color: var(--text);
+      padding: 14px 14px 104px;
     }
 
-    .entry {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      text-decoration: none;
-      padding: 10px 14px;
+    .container {
+      max-width: 1260px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .top-strip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    @media (min-width: 980px) {
+      .top-strip {
+        grid-template-columns: 1fr 1fr 1.4fr;
+        align-items: stretch;
+      }
+    }
+
+    .strip-col {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fcfdff;
+      min-height: 132px;
+    }
+
+    .strip-title {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .big {
+      margin: 0;
+      font-size: 23px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .small {
+      margin: 6px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .map-box {
+      width: 100%;
+      height: 100%;
+      min-height: 108px;
+      border: 1px solid var(--border);
       border-radius: 10px;
-      font-size: 14px;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    .map-box iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .grid-3x3 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 760px) {
+      .grid-3x3 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (min-width: 1080px) {
+      .grid-3x3 { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .tile {
+      min-height: 160px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .tile h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .tile p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tile .btn {
+      align-self: flex-start;
+      text-decoration: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
       font-weight: 700;
       color: #fff;
-      background: #0f766e;
-      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
-      z-index: 20;
+      background: var(--primary);
+      cursor: pointer;
     }
 
-    .entry:hover {
-      background: #115e59;
+    .tile .btn:hover { background: var(--primary-hover); }
+
+    .placeholder {
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .bgm-bar {
@@ -39,7 +162,7 @@
       right: 10px;
       bottom: 10px;
       z-index: 30;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 12px;
       background: rgba(248, 250, 252, 0.92);
       backdrop-filter: blur(8px);
@@ -79,18 +202,12 @@
       font-size: 12px;
       font-weight: 700;
       color: #fff;
-      background: #0f766e;
+      background: var(--primary);
       cursor: pointer;
     }
 
-    .btn:hover {
-      background: #115e59;
-    }
-
-    .btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .status {
       margin: 6px 0 0;
@@ -107,7 +224,46 @@
   </style>
 </head>
 <body>
-  <a class="entry" href="tool.html">进入 OCR 翻译工具</a>
+  <main class="container">
+    <section class="top-strip">
+      <article class="strip-col">
+        <p class="strip-title">今天日历</p>
+        <p id="calendarMain" class="big">--</p>
+        <p id="calendarSub" class="small">--</p>
+      </article>
+
+      <article class="strip-col">
+        <p class="strip-title">天气</p>
+        <p id="weatherMain" class="big">加载中...</p>
+        <p id="weatherSub" class="small">等待定位后查询天气</p>
+      </article>
+
+      <article class="strip-col">
+        <p class="strip-title">此设备地图位置</p>
+        <div class="map-box">
+          <iframe id="mapFrame" title="设备地图位置" loading="lazy"></iframe>
+        </div>
+        <p id="locationSub" class="small">正在定位...</p>
+      </article>
+    </section>
+
+    <section class="grid-3x3">
+      <article class="tile">
+        <h2>OCR 翻译工具</h2>
+        <p>进入完整 OCR 识别与翻译页面（含高精度、仅识别、历史记录、导出 PDF）。</p>
+        <a class="btn" href="tool.html">进入工具</a>
+      </article>
+
+      <article class="tile"><h2>模块 2</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 3</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 4</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 5</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 6</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 7</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 8</h2><p class="placeholder">预留</p></article>
+      <article class="tile"><h2>模块 9</h2><p class="placeholder">预留</p></article>
+    </section>
+  </main>
 
   <section class="bgm-bar" aria-label="背景音乐播放器">
     <div class="row">
@@ -124,6 +280,14 @@
 
   <script>
     const WORKER_BASE_URL = "https://restless-credit-a6e1.wangderingfiction.workers.dev";
+
+    const calendarMainEl = document.getElementById("calendarMain");
+    const calendarSubEl = document.getElementById("calendarSub");
+    const weatherMainEl = document.getElementById("weatherMain");
+    const weatherSubEl = document.getElementById("weatherSub");
+    const mapFrameEl = document.getElementById("mapFrame");
+    const locationSubEl = document.getElementById("locationSub");
+
     const player = document.getElementById("player");
     const songMeta = document.getElementById("songMeta");
     const statusEl = document.getElementById("status");
@@ -132,6 +296,85 @@
     const checkLoginBtn = document.getElementById("checkLoginBtn");
 
     let loadingSong = false;
+
+    function renderCalendar() {
+      const now = new Date();
+      const dateText = new Intl.DateTimeFormat("zh-CN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long",
+      }).format(now);
+      const timeText = new Intl.DateTimeFormat("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).format(now);
+      calendarMainEl.textContent = dateText;
+      calendarSubEl.textContent = `当前时间 ${timeText}`;
+    }
+
+    function weatherCodeToText(code) {
+      const map = {
+        0: "晴", 1: "基本晴", 2: "多云", 3: "阴",
+        45: "雾", 48: "雾凇", 51: "小毛毛雨", 53: "毛毛雨", 55: "大毛毛雨",
+        56: "冻毛毛雨", 57: "强冻毛毛雨", 61: "小雨", 63: "中雨", 65: "大雨",
+        66: "冻雨", 67: "强冻雨", 71: "小雪", 73: "中雪", 75: "大雪",
+        77: "雪粒", 80: "阵雨", 81: "强阵雨", 82: "暴雨阵雨",
+        85: "阵雪", 86: "强阵雪", 95: "雷暴", 96: "雷暴伴小冰雹", 99: "雷暴伴大冰雹"
+      };
+      return map[code] || `天气码 ${code}`;
+    }
+
+    function setMapByLatLon(lat, lon) {
+      const d = 0.02;
+      const left = lon - d;
+      const right = lon + d;
+      const top = lat + d;
+      const bottom = lat - d;
+      const src = `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat}%2C${lon}`;
+      mapFrameEl.src = src;
+    }
+
+    async function loadWeatherAndLocation() {
+      if (!navigator.geolocation) {
+        weatherMainEl.textContent = "无法定位";
+        weatherSubEl.textContent = "浏览器不支持定位";
+        locationSubEl.textContent = "未获取到位置";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(5));
+        const lon = Number(pos.coords.longitude.toFixed(5));
+        locationSubEl.textContent = `纬度 ${lat}，经度 ${lon}`;
+        setMapByLatLon(lat, lon);
+
+        try {
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto`;
+          const resp = await fetch(url);
+          const data = await resp.json();
+          const cur = data?.current;
+          if (!cur) throw new Error("天气数据为空");
+
+          const weatherText = weatherCodeToText(cur.weather_code);
+          weatherMainEl.textContent = `${weatherText} ${cur.temperature_2m}°C`;
+          weatherSubEl.textContent = `风速 ${cur.wind_speed_10m} km/h`;
+        } catch {
+          weatherMainEl.textContent = "天气加载失败";
+          weatherSubEl.textContent = "请稍后重试";
+        }
+      }, (err) => {
+        weatherMainEl.textContent = "定位失败";
+        weatherSubEl.textContent = "无法获取天气";
+        locationSubEl.textContent = `定位被拒绝或失败：${err.message}`;
+      }, {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 600000,
+      });
+    }
 
     function setStatus(message) {
       statusEl.textContent = message || "";
@@ -202,6 +445,9 @@
     });
 
     window.addEventListener("load", () => {
+      renderCalendar();
+      setInterval(renderCalendar, 1000);
+      loadWeatherAndLocation();
       playRandomSong(true);
     });
   </script>
