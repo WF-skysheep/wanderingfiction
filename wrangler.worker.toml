@@ -2,13 +2,3 @@ name = "restless-credit-a6e1"
 main = "worker-backend/index.js"
 compatibility_date = "2025-11-01"
 workers_dev = true
-
-[vars]
-WF_AI_PROVIDER = "mock"
-WF_ADMIN_USERNAME = "admin"
-WF_CORS_ORIGIN = "*"
-
-[[d1_databases]]
-binding = "WF_DB"
-database_name = "wf-db"
-database_id = "eb786ab3-a052-42eb-9c27-743e81c9282f"
